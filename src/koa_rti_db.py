@@ -6,13 +6,13 @@ import db_conn
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from db_conn import db_conn
 
-CONFIG_FILE = "config_prop.live.ini"
+CONFIG_FILE = "config.live.ini"
 APP_PATH = path.abspath(path.dirname(__file__))
 
 
 class DatabaseInteraction:
     def __init__(self, dev):
-        # config file for db,  ie config_prop.live.ini
+        # config file for db,  ie config.live.ini
         filename = path.join(APP_PATH, CONFIG_FILE)
 
         self.conn_obj = db_conn(filename)
