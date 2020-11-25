@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html style="background-image: url('static/starry_background.jpg'); background-size:cover">
+<html>
 
     <head>
 
@@ -8,7 +8,6 @@
 
     <!-- Used for long polling -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-    <script src="{{ url_for("static", filename="option_bar.js") }}"></script>
 
     <!--  Date Picker -->
     <meta charset="utf-8">
@@ -28,7 +27,7 @@
 
     </head>
 
-<body onload="load_params()" style="background-image: url('static/starry_background.jpg');">
+<body onload="load_params()">
 
 <!-- initialize drop-down menu form -->
 <form name="goform" method="get" action="#">
@@ -201,6 +200,8 @@
 {% block javascript %}
 <script type="text/javascript">
 
+    {% include "./poll.js" %}
+    {% include "./option_bar.js" %}
 
     function load_params() {
         change_options("{{ params.page }}", {{inst_lists | tojson}}, 1);
