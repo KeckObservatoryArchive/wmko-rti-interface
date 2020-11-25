@@ -1,0 +1,23 @@
+{% extends "rti_base.html" %}
+
+{% block content %}
+<script src="{{ url_for("static", filename="poll.js") }}"></script>
+
+<!-- add spacing between form and table -->
+<p></p>
+
+<table id="result_table" class="rti_table">
+    <thead>
+
+    {% for i in range(0, db_columns | length() ) %}
+        <th>{{db_columns[i]}}</th>
+    {% endfor %}
+
+    </thead>
+
+    <tbody id="table-body">
+        <!-- printed from poll.js -->
+    </tbody>
+</table>
+
+{% endblock %}

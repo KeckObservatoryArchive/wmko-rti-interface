@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html style="background-image: url('static/starry_background.jpg'); background-size:cover">
+
+    <head>
+
+    <style type='text/css'>{{ get_resource_as_string('static/rti.css') }}</style>
+
+    <!-- Used for long polling -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="{{ url_for("static", filename="option_bar.js") }}"></script>
+
+    <!--  Date Picker -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+    $( function() {
+        $( "#utd" ).datepicker({ dateFormat: 'yy-mm-dd' });
+        $( "#utd2" ).datepicker({ dateFormat: 'yy-mm-dd' });
+    } );
+    </script>
+
+    <!-- print tab title -->
+    <title>WMKO KOA RTI Status</title>
+
+    </head>
+
+<body onload="load_params()" style="background-image: url('static/starry_background.jpg');">
+
+<!-- initialize drop-down menu form -->
+<form name="goform" method="get" action="#">
+
+    <!-- select table view for database query -->
+    <td nowrap="">
+
+    <select class="sel_style" name="page" id="page"
+            onchange='change_options(this.value, {{inst_lists | tojson}}, 0);'>
+        <option value="daily" {% if params.page == 'daily' %}
+                selected="selected" {% endif %}>Daily</option>
+        <option value="monthly" {% if params.page == 'monthly' %}
+                selected="selected" {% endif %}>Monthly</option>
+        <option value="stats" {% if params.page == 'stats' %}
+                selected="selected" {% endif %}>Metrics</option>
+        <option value="health" {% if params.page == 'health' %}
+                selected="selected" {% endif %}>Health</option>
+    </select>
+
+    <div id="plots" style="display:inline;">
+
+    <select class="sel_style"name="plot" id="plot">Plots
+        <option value="0" {% if params.plot == 0 %}
+                selected="selected" {% endif %}>Total</option>
+        <option value="1" {% if params.plot == 1 %}
+                selected="selected" {% endif %}>Transfer</option>
+        <option value="2" {% if params.plot == 2 %}
+                selected="selected" {% endif %}>DEP</option>
+        <option value="3" {% if params.plot == 3 %}
+                selected="selected" {% endif %}>All</option>
+    </select>
+    </div>
+
+    <div id="tel_opts" style="display:inline;">
+    <td width="25%" nowrap="">Tel
+    <select class="sel_style"id="tel" name="tel" size="1"
+            onchange='update_inst(this.value, "0", {{inst_lists | tojson}});'>
+        <option value="0" {% if params.tel == 0 %}
+        selected="selected"{% endif %}>Both</option>
+        <option value="1" {% if params.tel == 1 %}
+        selected="selected"{% endif %}>Keck I</option>
+        <option value="2" {% if params.tel == 2 %}
+        selected="selected"{% endif %}>Keck II</option>
+    </select>
+    </td>
+    </div>
+
+    <div id="inst_opts"  style="display: inline">
+    <!-- select instrument for database query -->
+    <td width="25%" nowrap="">Inst
+        <select class="sel_style"id="inst" name="inst">
+        </select>
+    </td>
+    </div>
+
+    <!-- SEARCH Options (daily_opts) -->
+    <div id="search_opts"  style="display: inline">
+    <!-- Parameter selection and entry box -->
+    <td width="25%" nowrap="">Q
+        <select class="sel_style"id="search" name="search" size="1"
+                onchange='update_input_value(this.value, "{{ params.utd }}",
+                        "{{ params.val }}", {{ opt_lists | tojson }})'>
+        {% for option in opt_lists['query'] %}
+            <option value={{option}} {% if option == params.search %} selected
+            {% endif %}>{{option}}</option>
+        {% endfor %}
+        </select>
+    </td>
+
+    <!--Status Options-->
+    <div id="enter_opts"  style="display: inline">
+
+    <td width="25%" nowrap="">
+        <select class="sel_style"id="enter_value" name="val" size="1">
+        </select>
+    </td>
+    </div>
+
+    <div id="enter_val"  style="display: inline">
+
+    <input class="input_style" type="text" id="val" name="val" value=""
+           size="10" onfocus="this.value=''">
+    </div>
+
+    <!-- END SEARCH Options (daily_opts) -->
+    </div>
+
+    <!-- START DATE Options (date_opts) -->
+    <div id="date_opts" style="display:inline;">
+
+    <input name="chk" id="chk" type="checkbox" value="1" onclick="check_enable('chk', 'utd, utd2')"
+    {% if params.chk == 1 %}checked{% endif %}>
+
+    <td>UT
+      <input class="input_style" name="utd" type="text" id="utd"
+             value="{{ params.utd }}" size="8">
+    </td>
+
+    <td>to:
+    <input class="input_style" name="utd2" type="text" id="utd2" value="{{ params.utd2 }}" size="8">
+
+    </td>
+    </div>
+    <!-- END DATE Options (date_opts) -->
+
+    <!-- START VIEW / LIMIT Options (view_opts) -->
+    <div id="view_opts" style="display:inline;">
+
+    <br><br>
+
+    <input name="chk1" id="chk1" type="checkbox" value="1" onclick="check_enable('chk1', 'limit');"
+    {% if params.chk1 == 1 %}checked{% endif %}>
+
+    <td width="25%" nowrap="">Limit
+    <input class="limit_style" type="text" id="limit" name="limit" size="3" onfocus="this.value=''">
+
+    <!-- select table view for database query -->
+    <td width="25%" nowrap="">View
+    <select class="sel_style"id="view" name="view">
+        <option value="0" {% if params.view == 0 %} selected {% endif %}>default</option>
+        <option value="1" {% if params.view == 1 %} selected {% endif %}>full</option>
+    </select>
+    </td>
+
+    </div>
+    <!-- END VIEW Options (view_opts) -->
+
+    <!-- START MONTHLY Options (monthly_opts) -->
+    <div id="monthly_opts" style="display:none;">
+
+    <td width="25%" nowrap=""> Year
+    <select class="sel_style"id="yr", name="yr" size="1">
+    {% for yr in yrs %}
+        <option value={{yr}}>{{yr}}</option>
+    {% endfor %}
+
+    </select></td>
+
+    <td width="25%" nowrap=""> Month
+    <select class="sel_style"id="month" name="month" size="1">
+    {% for month in months %}
+        {% if not loop.first %}
+           <option value={{loop.index0}} | string()
+                   {% if loop.index0 | string() == params.month %} selected
+                   {% endif %}>{{month}}</option>
+        {% endif %}}
+    {% endfor %}
+
+    </select></td>
+
+    </div>
+    <!-- END MONTHLY Options (monthly_opts) -->
+
+    <td width="25%" nowrap="">
+    <select class="sel_style"id="dev" name="dev">
+        <option value="0" {% if params.dev == 0 %} selected {% endif %}>RTI</option>
+        <option value="1" {% if params.dev == 1 %} selected {% endif %}>DEV</option>
+    </select>
+    </td>
+
+    <!-- initialize submit button to reload page -->
+    <input type="hidden" name="posted" value="1" />
+    <input class="submit_style" type="submit" value="Submit">
+</form>
+
+{% block content %}
+{% endblock %}
+
+
+{% block javascript %}
+<script type="text/javascript">
+
+
+    function load_params() {
+        change_options("{{ params.page }}", {{inst_lists | tojson}}, 1);
+        update_input_value("{{params.search}}", "{{ params.utd }}",
+            "{{ params.val }}", {{ opt_lists | tojson }});
+        check_enable('chk', 'utd, utd2')
+        check_enable('chk1', 'limit')
+        update_inst("{{params.tel}}", "{{ params.inst }}", {{inst_lists | tojson}});
+        set_section("tel", "{{params.tel}}");
+        set_section("dev", "{{params.dev}}");
+        set_section("view", "{{params.view}}");
+        set_section("page", "{{params.page}}");
+        set_section("month", "{{params.month}}");
+        set_section('enter_value', '{{params.val}}');
+        set_section('limit', '{{params.limit}}')
+    }
+
+</script>
+{% endblock %}
+
+</body>
+</html>
+

@@ -1,0 +1,30 @@
+{
+
+  "computers":
+  [
+    {"check":"ping", "server":"hiresserver", "name":"HIRES instrument server"},
+    {"check":"ping", "server":"kcwiserver",  "name":"KCWI instrument server"},
+    {"check":"ping", "server":"niresserver1","name":"NIRES instrument server"},
+  ],
+
+  'daemons':
+  [
+    {"name":"monitor", "check":"ps",  "flags":"auxww",  "pattern":"monitor" },
+  ],
+
+  'keyword libraries':
+  [
+    {"name":"hiccd", "check":"show",  "service":"hiccd", "keyword":"outdir"},
+  ],
+
+  'Instruments':
+    [
+    {"name":"KCWI last file",  "check":"show",  "service":"kfcs", "keyword":"LASTFILE"},
+    {"name":"KCWI lout file",  "check":"show",  "service":"kbds", "keyword":"LOUTFILE"},
+    {"name":"DEIMOS CCD",  "check":"show",  "service":"deimosplus", "keyword":"LASTCCD"},
+    {"name":"DEIMOS last CCD",  "check":"show",  "service":"deifcs", "keyword":"FCSIMGFI"},
+    {"name":"HIRES CCD",  "check":"show",  "service":"hiccd", "keyword":"WDISK"},
+    {"name":"NIRES last file 1",  "check":"show",  "service":"nids", "keyword":"LASTFILE"},
+    {"name":"NIRES last file 2",  "check":"show",  "service":"nsds", "keyword":"LASTFILE"},
+    ]
+}

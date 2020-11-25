@@ -1,0 +1,108 @@
+
+body            {
+    font-size: 10pt;
+
+    font-family: verdana;
+    background-attachment: fixed;
+    background-size: cover;
+    background-color: aliceblue;
+    color: midnightblue;
+    text-align:center;}
+
+/*make header white*/
+h1 {color:white;}
+/*make links lime green*/
+a {color: #16c616;}
+
+div.ui-datepicker{font-size:10px;}
+
+.rti_table {
+    border-collapse:collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.rti_table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+
+.rti_table th {
+    color: whitesmoke;
+    background:darkslategray;
+    text-align: center;
+    font-size: 8pt;
+    font-weight:bold;
+    padding: 10px 6px;
+    white-space:nowrap;
+}
+.rti_table td {
+    background:navajowhite;
+    font-size: 8pt;
+    font-weight:bold;
+    padding: 8px 6px;
+    white-space:nowrap;
+    border:1px solid white;
+}
+
+.rti_table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.rti_table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+/*center table in middle of page*/
+table.rti_table {
+    margin-left:auto;
+    margin-right:auto;
+}
+
+/*make 'done' cells forest green with opacity = 0.8*/
+td.done         {background:rgba(33,122,21,0.8);}
+td.DONE         {background:rgba(33,122,21,0.8);}
+td.TRANSFERRED  {background:rgba(33,122,21,0.8);}
+td.TRANSFERRING {background:rgba(33,122,21,0.8);}
+td.PROCESSING   {background:rgba(33,122,21,0.8);}
+td.PROCESSING   {background:rgba(33,122,21,0.8);}
+td.WARN	{background:rgba(255,255,0,0.8); color:black}
+td.INVALID_PROGID	{background:rgba(255,255,0,0.8); color:black}
+
+/*make 'error' and 'failed' cells red with opacity = 0.8*/
+td.ERROR		{background:rgba(229,71,25,0.8);}
+td.INVALID		{background:rgba(229,71,25,0.8);}
+td.failed		{background:rgba(229,71,25,0.8);}
+td.FAILED		{background:rgba(229,71,25,0.8);}
+td.DUPLICATE_KOAID	{background:rgba(229,71,25,0.8);}
+td.FILEPATH_REJECT	{background:rgba(229,71,25,0.8);}
+
+.sel_style {
+    cursor:pointer;
+    display:inline-block;
+    position:relative;
+    font:10pt Arial, Sans-Serif;
+    color:black;
+    border:1px solid #ccc;
+}
+
+.input_style{
+  font-size: 10pt;
+  height:14px;
+  width:80px;
+}
+.limit_style{
+  font-size: 10pt;
+  height:14px;
+  width:40px;
+}
+
+.submit_style{
+  font-size: 10pt;
+
+  height:24px
+}

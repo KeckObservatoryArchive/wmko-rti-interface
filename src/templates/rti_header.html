@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<html>
+<header>
+        <style type='text/css'>{{ get_resource_as_string('static/header.css') }}</style>
+</header>
+
+<body>
+<table class="header">
+<tbody><tr>
+
+{% for key, val in data.items() %}
+    {% if loop.index0 % 3 == 0 %} </tr><tr> {% endif %}
+        <td class="header">
+            <pre>{{ key }} : {{ val }} </pre>
+        </td>
+{% endfor %}
+
+</tbody>
+</table>
+</body>
+</html>

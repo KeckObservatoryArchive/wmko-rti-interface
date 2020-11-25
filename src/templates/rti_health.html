@@ -1,0 +1,92 @@
+{% extends "rti_base.html" %}
+
+{% block content %}
+
+    {% set h_error_color = "color:#FF1818" %}
+    {% set h_warning_color = "color:#Faed27" %}
+    {% set h_good_color = "color:#39FF14" %}
+
+    {% set error_color = "color:#6f112b" %}
+    {% set warning_color = "color:#F4C430" %}
+    {% set good_color = "color:#006400" %}
+
+    {% set stats = results['stats'] %}
+    {% set report = results['tests'] %}
+
+    {% if stats.num_error|int > 0 %}
+        {% set name_color = error_color %}
+    {% elif stats.num_warn|int > 0%}
+        {% set name_color = warning_color %}
+    {% else %}
+        {% set name_color = good_color %}
+
+    {% endif %}
+
+    <table width=100% class="rti_table">
+        <thead>
+        <tr>
+            <th width=20%, style={{h_error_color}}>ERRORS</th>
+            <th width=20%, style={{h_good_color}}>TIME</th>
+            <th width=20%, style={{h_good_color}}>PASS</th>
+            <th width=20%, style={{h_warning_color}}>WARNINGS</th>
+            <th width=20%, style={{h_warning_color}}>SKIPPED</th>
+        </tr>
+        </thead>
+        <tbody id="results">
+
+        <tr>
+            {% for result in [stats.num_error, results.timestamp, stats.num_pass,
+                              stats.num_warn, stats.num_skip] %}
+                <td>{{result}}</td>
+            {% endfor %}
+
+        </tbody>
+    </table>
+
+    {% if stats.num_pass != 'No Result' %}
+        <button onclick="hide_report()">Show/Hide Report</button>
+    {% endif %}
+
+    <div id="show_table"  style="display: none">
+
+    <table class="rti_table" id="collapsible1" width="100%">
+    <tbody id="report">
+    {%for item in report%}
+    <tr>
+        <th width=20%>{{item|upper}}</th>
+        <th width=20%>CHECK TYPE</th>
+        <th width=40%>ERROR</th>
+        <th width=20%>Skipped</th>
+
+        {% for data in report[item] %}
+        <tr>
+
+            {% if data.ok == True %}
+                {% set col = good_color %}
+            {% else %}
+                {% if data.errtype == "warning" %}
+                   {% set col = warning_color %}
+                {% else %}
+                   {% set col = error_color %}
+                {% endif %}
+            {% endif %}
+
+            <td width=20%; style={{col}}>{{data.name}}</td>
+            <td width=20%; style="text-align:center">{{data.check}}</td>
+            {% if data.err == "" %}
+                <td width=40%; style={{col}}>No Error</td>
+            {% else %}
+                <td width=40%; style={{col}}>{{data.err}}</td>
+            {% endif %}
+            <td width=20%; style="text-align:center">{{data.skip}}</td>
+        </tr>
+        {% endfor %}
+    {% endfor %}
+    </tbody>
+    </table>
+    </div>
+
+{% endblock %}
+
+
+

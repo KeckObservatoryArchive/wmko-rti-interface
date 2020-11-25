@@ -1,0 +1,25 @@
+
+{% extends "rti_base.html" %}
+
+{% block content %}
+
+    {% set ns = namespace(no_results=false) %}
+    {% for result in results['plots'] %}
+        {% if result | safe == 'None'%}
+            {% set ns.no_results = True %}
+        {%  else  %}
+            {% set ns.no_results = False %}
+             <div class="plot" align="center">
+                 {{result|safe}}
+             </div>
+        {%  endif %}
+    {% endfor %}
+
+    {{ no_result }}
+    {% if ns.no_results %}
+        <p style="padding-bottom: 80px;"> </p>
+        <p style="padding-bottom: 60px; font-size: 40px" > NO RESULTS </p>
+        <p style="padding-bottom: 80px;"> </p>
+    {%  endif %}
+
+{% endblock %}
