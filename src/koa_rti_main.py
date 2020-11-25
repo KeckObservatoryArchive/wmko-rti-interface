@@ -48,7 +48,7 @@ def tpx_rti_api():
     return json.dumps(results)
 
 
-@app.route("/rti", methods=['GET'])
+@app.route("/koarti", methods=['GET'])
 def tpx_rti_page():
     """
     Main page used to display an updated table.
@@ -80,7 +80,7 @@ def tpx_rti_page():
                            opt_lists=opt_lists)
 
 
-@app.route("/header/<header_val>", methods=['GET'])
+@app.route("/koarti/header/<header_val>", methods=['GET'])
 def return_header(header_val):
     """
     Page to return the header keywords and values.
@@ -107,7 +107,7 @@ def return_header(header_val):
     return render_template("rti_header.html", data=result_dict)
 
 
-@app.route("/data-update")
+@app.route("/koarti/data-update")
 def data_update():
     """
     Long-polling used to keep the webpage table up-to-date.  Page is connected
@@ -131,7 +131,7 @@ def data_update():
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
 
-@app.route("/data")
+@app.route("/koarti/data")
 def load_data():
     """
     Returns the current data content.  This is used to display the table the
