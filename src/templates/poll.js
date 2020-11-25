@@ -10,7 +10,7 @@
 
 function update() {
     $.ajax({
-        url: '/data-update',
+        url: '/koarti/data-update',
         success:  function(data) {
             write_table(data);
             update();
@@ -25,7 +25,7 @@ function update() {
  */
 function load() {
     $.ajax({
-        url: '/data',
+        url: '/koarti/data',
         success: function(data) {
             write_table(data);
             update();
@@ -80,7 +80,7 @@ function add_row($table, results, column, i, j) {
         }
     } else if (col === 'koaid') {
         $table.append("<td class=" + val +
-            "><a href=/header/" + val + ">" +
+            "><a href=/koarti/header/" + val + ">" +
             val + "</a></td>");
     } else if (col === 'status_code') {
         if (val != '' && val != 'null') {
