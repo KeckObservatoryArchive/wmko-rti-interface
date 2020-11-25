@@ -9,7 +9,8 @@ sys.path.append('/kroot/rel/default/bin/')
 import testall
 
 APP_PATH = path.abspath(path.dirname(__file__))
-TESTALL_PATH = path.join(APP_PATH, "config/")
+#TESTALL_PATH = path.join(APP_PATH, "config/")
+TESTALL_PATH = '/kroot/rel/default/data'
 
 def year_range():
     """
