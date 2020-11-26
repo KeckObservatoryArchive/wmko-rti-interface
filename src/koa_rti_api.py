@@ -9,7 +9,6 @@ from os import stat
 from koa_rti_db import DatabaseInteraction
 from koa_rti_plots import TimeBarPlot, OverlayTimePlot
 
-
 class KoaRtiApi:
 
     def __init__(self, var_get):
@@ -45,6 +44,8 @@ class KoaRtiApi:
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
+
+        self.timeout = 0
 
         self.update_table_name(var_get.view)
 
@@ -571,6 +572,13 @@ class KoaRtiApi:
                 return True
         except:
             pass
+
+        # Called every 10 seconds
+        # Return true after 30 seconds so NGINX doesn't timeout
+        self.timeout += 1
+        if self.timeout > 2:
+            self.timeout = 0
+            return True
 
         return False
 
