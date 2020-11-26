@@ -574,9 +574,9 @@ class KoaRtiApi:
             pass
 
         # Called every 10 seconds
-        # Return true after 30 seconds so NGINX doesn't timeout
-        self.timeout += 1
-        if self.timeout > 2:
+        # Return true after 280 seconds so NGINX doesn't timeout
+        self.timeout += 10
+        if self.timeout >= 280:
             self.timeout = 0
             return True
 
