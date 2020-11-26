@@ -124,8 +124,8 @@ def data_update():
     while not API_INSTANCE.is_updated(request_time):
         time.sleep(10.0)
         if datetime.now() > end_time:
-            return {'results': 0,
-                    'columns': 0,
+            return {'results': 'null',
+                    'columns': 'null',
                     'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
     results, columns = get_results()

@@ -27,11 +27,9 @@ function load() {
     $.ajax({
         url: '/koarti/data',
         success: function(data) {
-            let results = JSON.parse(data.results);
-            if (results !== 0) {
-                write_table(data);
-                update();
-            };
+            write_table(data);
+            update();
+
         }
     });
 }
@@ -42,26 +40,23 @@ function load() {
  */
 function write_table(data) {
     let results = JSON.parse(data.results);
-
     let column = data.columns;
     let num_results = 0;
-
     var $table = $('#table-body');
-    $table.empty();
 
     if (Boolean(results)) {
         num_results = results.length;
+        $table.empty();
     }
 
     for (let i = 0; i < num_results; i++) {
-
         $table.append("<tr>");
         for (let j = 0; j < column.length; j++) {
             add_row($table, results, column, i, j)
         }
         $table.append("</tr>");
     }
-    if (num_results == 0) {
+    if (num_results == 0 && column != 'null') {
         $table.empty();
         $table.append("<tr>");
         for (let j = 0; j < column.length; j++) {
