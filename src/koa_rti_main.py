@@ -119,9 +119,14 @@ def data_update():
     while not API_INSTANCE:
         time.sleep(0.1)
 
+    end_time = datetime.now() + timedelta(seconds=280)
     request_time = time.time()
     while not API_INSTANCE.is_updated(request_time):
         time.sleep(10.0)
+        if datetime.now() > end_time:
+            return {'results': 0,
+                    'columns': 0,
+                    'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
     results, columns = get_results()
     results = json.dumps(results)

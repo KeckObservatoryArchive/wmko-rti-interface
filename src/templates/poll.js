@@ -27,8 +27,11 @@ function load() {
     $.ajax({
         url: '/koarti/data',
         success: function(data) {
-            write_table(data);
-            update();
+            let results = JSON.parse(data.results);
+            if (results !== 0) {
+                write_table(data);
+                update();
+            };
         }
     });
 }
@@ -38,11 +41,14 @@ function load() {
  * @param data (list:JSON) a list of JSON objects for each row in the table
  */
 function write_table(data) {
-    var $table = $('#table-body');
-    $table.empty();
     let results = JSON.parse(data.results);
+
     let column = data.columns;
     let num_results = 0;
+
+    var $table = $('#table-body');
+    $table.empty();
+
     if (Boolean(results)) {
         num_results = results.length;
     }
