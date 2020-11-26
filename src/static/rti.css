@@ -4,6 +4,7 @@ body            {
 
     font-family: verdana;
     background-attachment: fixed;
+    background-image: url(http://vm-koarti:4444/static/starry_background.jpg);
     background-size: cover;
     background-color: aliceblue;
     color: midnightblue;
