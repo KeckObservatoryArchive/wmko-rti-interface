@@ -197,6 +197,19 @@ class KoaRtiApi:
 
         return results
 
+    def searchLocation(self):
+        """
+        provide access to file locations by date.  The results include the
+        original filename (OFNAME), the orginal file (stage file) and the
+        archive files location (archive dir)
+
+        :return: (list / dict) the file locations by date
+        """
+        query, params = self._generic_query(key="ofname, stage_file, archive_dir")
+        results = self.db_functions.make_query(query, params)
+
+        return results
+
     # -- monthly view section ---
 
     def monthlyINST(self, day):
@@ -477,7 +490,7 @@ class KoaRtiApi:
             add_str = " WHERE "
 
         if self.params.chk and self.params.chk == 1 and self.utd:
-            query +=  f" {add_str} utdatetime LIKE %s"
+            query += f" {add_str} utdatetime LIKE %s"
             params += ("%" + self.utd + "%", )
             add_str = " AND "
 

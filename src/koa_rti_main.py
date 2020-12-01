@@ -164,7 +164,8 @@ def api_results():
     var_get = rti_api.get_params()
     results = None
 
-    if var_get.search == 'Last_Entry' or (var_get.search and var_get.val):
+    only_search = ['Last_Entry', 'Location']
+    if var_get.search in only_search or (var_get.search and var_get.val):
         cmd = 'search' + var_get.search.replace('_', '')
         try:
             results = getattr(rti_api, cmd)()
