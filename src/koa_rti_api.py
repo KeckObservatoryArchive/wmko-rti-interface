@@ -421,7 +421,6 @@ class KoaRtiApi:
 
     def getPlots(self):
         """ Determine the plots to return by the input plot type """
-        print(self.params.plot)
         if not self.params.plot or self.params.plot == 0:
             results = {'plots': [self.statTotalTime()]}
         elif self.params.plot == 1:
