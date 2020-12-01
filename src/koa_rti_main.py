@@ -193,8 +193,8 @@ def get_results():
     var_get = rti_api.get_params()
 
     if not var_get.page or var_get.page == 'daily':
-        if var_get.search == 'Last_Entry' or (var_get.search and var_get.val):
-            cmd = 'search' + var_get.search.replace('_', '')
+        if var_get.search:
+            cmd = 'search' + var_get.search.upper().replace('_', '')
             try:
                 results = getattr(rti_api, cmd)()
             except ValueError as err:

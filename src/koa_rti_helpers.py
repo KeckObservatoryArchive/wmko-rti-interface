@@ -132,7 +132,7 @@ def replace_datetime(results):
 
 def get_api_help_string():
     help_str = "<BR><BR>Options: <BR><UL>"
-    help_str += "<li>search=STATUS, LastEntry, KOAID, SEMID, ImageType, HEADER<BR>"
+    help_str += "<li>search=STATUS, LastEntry, KOAID, SEMID, ImageType, HEADER, Location<BR>"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"

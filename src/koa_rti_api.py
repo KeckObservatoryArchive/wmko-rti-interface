@@ -115,7 +115,7 @@ class KoaRtiApi:
 
         return results
 
-    def searchLastEntry(self):
+    def searchLASTENTRY(self):
         """
         Return the last entry into the database.
 
@@ -156,7 +156,7 @@ class KoaRtiApi:
 
         return self.db_functions.make_query(query, params)
 
-    def searchImageType(self):
+    def searchIMAGETYPE(self):
         """
         Find all results with the defined Image Type.
 
@@ -197,7 +197,7 @@ class KoaRtiApi:
 
         return results
 
-    def searchLocation(self):
+    def searchLOCATION(self):
         """
         provide access to file locations by date.  The results include the
         original filename (OFNAME), the orginal file (stage file) and the
