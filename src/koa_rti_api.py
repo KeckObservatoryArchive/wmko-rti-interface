@@ -205,7 +205,8 @@ class KoaRtiApi:
 
         :return: (list / dict) the file locations by date
         """
-        query, params = self._generic_query(key="ofname, stage_file, archive_dir")
+        column_keys = "koaid, ofname, stage_file, archive_dir"
+        query, params = self._generic_query(key=column_keys)
         results = self.db_functions.make_query(query, params)
 
         return results
