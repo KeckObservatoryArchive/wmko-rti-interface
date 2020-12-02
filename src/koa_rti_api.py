@@ -207,7 +207,9 @@ class KoaRtiApi:
         """
         column_keys = "koaid, ofname, stage_file, archive_dir"
         query, params = self._generic_query(key=column_keys)
+        print(query, params)
         results = self.db_functions.make_query(query, params)
+        print(results)
 
         return results
 

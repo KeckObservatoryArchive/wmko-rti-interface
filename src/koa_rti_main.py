@@ -173,7 +173,6 @@ def api_results():
         except AttributeError:
             return None
 
-        results = rti_api.parse_results(results)
         results = replace_datetime(results)
 
     return results
