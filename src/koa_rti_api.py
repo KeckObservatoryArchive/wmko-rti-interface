@@ -91,28 +91,6 @@ class KoaRtiApi:
         query, params = self._generic_query()
         results = list(self.db_functions.make_query(query, params))
 
-        if self.params.utd2:
-            results = self._loop_date_range(results)
-
-        return results
-
-    def _loop_date_range(self, results):
-        if not results:
-            results = []
-
-        utd_orig = self.utd
-        if self.params.utd2 and self.params.utd2 > self.utd:
-            while self.utd < self.params.utd2:
-                datetime_object = datetime.strptime(self.utd, "%Y-%m-%d")
-                datetime_object += timedelta(days=1)
-                self.utd = datetime_object.strftime("%Y-%m-%d")
-                query, params = self._generic_query()
-                result = self.db_functions.make_query(query, params)
-
-                results += list(result)
-
-        self.utd = utd_orig
-
         return results
 
     def searchLASTENTRY(self):
@@ -207,6 +185,22 @@ class KoaRtiApi:
         """
         column_keys = "koaid, ofname, stage_file, archive_dir"
         query, params = self._generic_query(key=column_keys)
+        results = self.db_functions.make_query(query, params)
+
+        return results
+
+    def searchARCHIVED(self):
+        """
+        Get the koaid and status for a date,   or the search parameters
+
+        :return: (dict) db results
+        """
+        keys = "koaid, status, ofname, stage_file, archive_dir"
+        key = "status"
+        #TODO change to archived once the status has been updated
+        # val = "ARCHIVED"
+        val = "Transferred"
+        query, params = self._generic_query(keys=keys, key=key, val=val)
         results = self.db_functions.make_query(query, params)
 
         return results
@@ -467,7 +461,7 @@ class KoaRtiApi:
 
         return stats
 
-    def _generic_query(self, key=None, val=None, table='dep_status'):
+    def _generic_query(self, keys=None, key=None, val=None, table='dep_status'):
         """
         Only uses UTD if added as an additional parameter.
 
@@ -476,10 +470,15 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        if key and val:
-            query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
-            params = ("%" + val + "%", )
+        if keys and key and val:
+            query = f"SELECT {keys} FROM {table} WHERE {key} LIKE %s"
+            params = ("%" + val + "%",)
             add_str = " AND "
+        elif key and val:
+            if full:
+                query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
+                params = ("%" + val + "%", )
+                add_str = " AND "
         elif key:
             query = f"SELECT {key} FROM {table}"
             params = ()
@@ -489,12 +488,20 @@ class KoaRtiApi:
             params = ()
             add_str = " WHERE "
 
-        if self.params.chk and self.params.chk == 1 and self.utd:
-            query += f" {add_str} utdatetime LIKE %s"
-            params += ("%" + self.utd + "%", )
-            add_str = " AND "
+        if self.params.chk and self.params.chk == 1:
+            if self.utd and self.params.utd2:
+                query += f" {add_str} utdatetime between %s and %s"
+                params += (self.utd, self.params.utd2 + ' 23:59:59')
+                add_str = " AND "
+            elif self.utd:
+                query += f" {add_str} utdatetime LIKE %s"
+                params += ("%" + self.utd + "%", )
+                add_str = " AND "
 
         query, params = self._add_general_query(query, params, add_str)
+
+        print(query)
+        print(params)
 
         return query, params
 

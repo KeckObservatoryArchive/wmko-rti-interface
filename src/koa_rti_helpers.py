@@ -3,6 +3,7 @@ from calendar import monthrange
 import sys
 import json
 from os import path
+from koa_rti_api import KoaRtiApi
 
 
 sys.path.append('/kroot/rel/default/bin/')
@@ -131,8 +132,14 @@ def replace_datetime(results):
 
 
 def get_api_help_string():
+    search_list = []
+    for attribute in KoaRtiApi.__dict__:
+        if 'search' in attribute:
+            query_name = attribute.split('search')[1]
+            search_list.append(query_name)
+
     help_str = "<BR><BR>Options: <BR><UL>"
-    help_str += "<li>search=STATUS, LastEntry, KOAID, SEMID, ImageType, HEADER, Location<BR>"
+    help_str += f"<li>search={search_list}<BR>"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"
@@ -140,7 +147,7 @@ def get_api_help_string():
     help_str += "<li>inst=inst-name,  the instrument to limit the search"
     help_str += "<li>tel=#,  the number (1,2) of the telescope to limit the search"
     help_str += "<BR><BR>Example: <BR><UL>"
-    help_str += "<li>/api?search=STATUS&val=Transferred&utd=2020-11-21"
+    help_str += "<li>/koarti_api?search=STATUS&val=Transferred&utd=2020-11-21"
 
     return help_str
 

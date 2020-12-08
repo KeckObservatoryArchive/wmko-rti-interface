@@ -32,15 +32,16 @@ app = Flask(__name__, template_folder=TEMPLATE_PATH)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 
-@app.route("/api", methods=['GET'])
+@app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
     global API_INSTANCE
     var_get = parse_request()
+    print(var_get)
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 
     results = api_results()
-    if not results:
+    if not results['data']:
         help_str = f"No Results for query parameters:<BR><BR> {var_get}<BR>"
         help_str += get_api_help_string()
         return help_str
@@ -168,14 +169,29 @@ def api_results():
         cmd = 'search' + var_get.search.upper().replace('_', '')
         try:
             results = getattr(rti_api, cmd)()
-        except ValueError:
-            return None
-        except AttributeError:
-            return None
+        except AttributeError as err:
+            return return_results(success=0, msg=err)
+        except ValueError as err:
+            return return_results(success=0, msg=err)
 
         results = replace_datetime(results)
 
-    return results
+    return return_results(results=results)
+
+
+def return_results(success=1, results=None, msg=None):
+
+    """
+    Return the results.  If json,  the results are a dictionary of
+    success,  data (the database query results), and any error messages.
+
+    :param results: <str> the results,  either a json formatted string or
+                          a string of the database query results.
+    :param success: <int> 1 for success, 0 for error
+    :param msg: <str> any message to return
+    :return: <dict> the results as a dictionary response
+    """
+    return {'success': success, 'data': results, 'msg': msg}
 
 
 def get_results():
