@@ -36,7 +36,6 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 def tpx_rti_api():
     global API_INSTANCE
     var_get = parse_request()
-    print(var_get)
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 

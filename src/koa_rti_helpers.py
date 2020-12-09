@@ -43,7 +43,6 @@ def set_utd(day, month, yr):
 
     if day and month and yr:
         day, month, yr = _check_input_dates(int(day), int(month), int(yr))
-        print(f'{day} {month} {yr}')
         if yr > 90:
             yr = f'19{int(yr):02}'
         else:

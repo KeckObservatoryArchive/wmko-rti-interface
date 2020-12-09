@@ -111,8 +111,6 @@ class KoaRtiApi:
         :return: (list) row/columns to be used for the table.
         """
         query, params = self._generic_query(key="STATUS", val=self.search_val)
-        print(query)
-        print(params)
 
         return self.db_functions.make_query(query, params)
 
