@@ -207,6 +207,15 @@ class KoaRtiApi:
 
         return results
 
+    # -- update section for api --
+
+    def updateMARKDELETED(self):
+        # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
+        query = f"UPDATE dep_status SET ofname_deleted = True WHERE koaid=%s;"
+        params = (self.params.val, )
+
+        return query + str(params)
+
     # -- monthly view section ---
 
     def monthlyINST(self, day):
@@ -438,9 +447,6 @@ class KoaRtiApi:
         """
         query, params = self._generic_query()
         results = self.db_functions.make_query(query, params)
-
-        if self.params.utd2:
-            results = self._loop_date_range(results)
 
         stats = {}
 

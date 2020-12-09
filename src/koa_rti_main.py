@@ -164,9 +164,14 @@ def api_results():
     rti_api = API_INSTANCE
     var_get = rti_api.get_params()
     results = None
+    cmd = None
 
     if var_get.search:
         cmd = 'search' + var_get.search.upper().replace('_', '')
+    elif var_get.update:
+        cmd = 'update' + var_get.update.upper()
+
+    if cmd:
         try:
             results = getattr(rti_api, cmd)()
         except AttributeError as err:
@@ -245,7 +250,7 @@ def parse_request():
 
     :return: (named tuple) day parameters
     """
-    args = ['utd', 'utd2', 'search', 'val', 'view', 'tel', 'inst',
+    args = ['utd', 'utd2', 'search', 'update', 'val', 'view', 'tel', 'inst',
             'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot']
 
     vars = dict((name, request.args.get(name)) for name in args)
