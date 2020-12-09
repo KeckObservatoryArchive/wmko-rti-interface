@@ -110,7 +110,9 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
-        query, params = self._generic_query("STATUS", self.search_val)
+        query, params = self._generic_query(key="STATUS", val=self.search_val)
+        print(query)
+        print(params)
 
         return self.db_functions.make_query(query, params)
 
@@ -120,7 +122,7 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
-        query, params = self._generic_query("KOAID", self.search_val)
+        query, params = self._generic_query(key="KOAID", val=self.search_val)
 
         return self.db_functions.make_query(query, params)
 
@@ -130,7 +132,7 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
-        query, params = self._generic_query("SEMID", self.search_val)
+        query, params = self._generic_query(key="SEMID", val=self.search_val)
 
         return self.db_functions.make_query(query, params)
 
@@ -140,7 +142,7 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
-        query, params = self._generic_query("KOAIMTYP", self.search_val)
+        query, params = self._generic_query(key="KOAIMTYP", val=self.search_val)
 
         return self.db_functions.make_query(query, params)
 
@@ -475,10 +477,9 @@ class KoaRtiApi:
             params = ("%" + val + "%",)
             add_str = " AND "
         elif key and val:
-            if full:
-                query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
-                params = ("%" + val + "%", )
-                add_str = " AND "
+            query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
+            params = ("%" + val + "%", )
+            add_str = " AND "
         elif key:
             query = f"SELECT {key} FROM {table}"
             params = ()
@@ -499,9 +500,6 @@ class KoaRtiApi:
                 add_str = " AND "
 
         query, params = self._add_general_query(query, params, add_str)
-
-        print(query)
-        print(params)
 
         return query, params
 
