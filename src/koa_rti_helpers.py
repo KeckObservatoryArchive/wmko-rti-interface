@@ -6,7 +6,8 @@ from os import path
 from koa_rti_api import KoaRtiApi
 
 
-sys.path.append('/kroot/rel/default/bin/')
+# sys.path.append('/kroot/rel/default/bin/')
+sys.path.append('/usr/local/home/koarti/lfuhrman/KOA_RTI/TestAll/testall/')
 import testall
 
 APP_PATH = path.abspath(path.dirname(__file__))

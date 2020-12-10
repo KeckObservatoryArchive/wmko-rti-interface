@@ -195,12 +195,14 @@ class KoaRtiApi:
 
         :return: (dict) db results
         """
-        keys = "koaid, status, ofname, stage_file, archive_dir"
+        keys = "koaid, status, ofname, stage_file, archive_dir, ofname_deleted"
         key = "status"
         #TODO change to archived once the status has been updated
         # val = "ARCHIVED"
         val = "Transferred"
-        query, params = self._generic_query(keys=keys, key=key, val=val)
+        add = "AND OFNAME_DELETED = False"
+        query, params = self._generic_query(keys=keys, key=key, val=val, add=add)
+
         results = self.db_functions.make_query(query, params)
 
         return results
@@ -467,7 +469,8 @@ class KoaRtiApi:
 
         return stats
 
-    def _generic_query(self, keys=None, key=None, val=None, table='dep_status'):
+    def _generic_query(self, keys=None, key=None, val=None,
+                       add=None, table='dep_status'):
         """
         Only uses UTD if added as an additional parameter.
 
@@ -492,6 +495,9 @@ class KoaRtiApi:
             query = f"SELECT * FROM {table}"
             params = ()
             add_str = " WHERE "
+
+        if add:
+            query += f" {add} "
 
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
