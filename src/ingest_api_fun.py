@@ -2,11 +2,25 @@ from flask import request, jsonify
 from datetime import datetime
 import pdb
 
+class DateParseException(Exception):
+    pass
+
 INST_SET = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
 STATUS_SET = {'DONE', 'ERROR'}
-VALID_BOOL = {'true', '1', 'yes', 'false', '0', 'no'}
+VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+
+
+remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
+remove_whitespace_and_make_lowercase = lambda s: ''.join(s.split()).lower()
+is_blank_msg = lambda s: f'{s} is blank'
+not_in_set_msg = lambda s, st: f'{s} not found in set {st}'
+
+def assert_is_blank(param):
+    assert len(param) > 0, is_blank_msg(param)
+def assert_in_set(param, paramSet):
+    assert param in paramSet, not_in_set_msg(param, paramSet)
 
 def parse_status(status):
     '''
@@ -14,23 +28,45 @@ def parse_status(status):
     checks if status is acceptible as stated in  
     https://keckobservatory.atlassian.net/wiki/spaces/DSI/pages/402882573/Ingestion+API+Interface+Control+Document+for+RTI
     '''
-    status = ''.join(status.split()).upper()
-    assert len(status) > 0, f'status is blank'
-    assert status in STATUS_SET, f'{status} not in status set'
+    status = remove_whitespace_and_make_uppercase(status)
+    assert_is_blank(status)
+    assert_in_set(status, STATUS_SET)
     return status
 
 def parse_inst(inst):
     '''removes all whitespace and set to upper. Resulting string must be found in INST_SET'''
-    inst = ''.join(inst.split()).upper()
-    assert inst in INST_SET, 'instrument not found in set'
-    return inst 
+    inst = remove_whitespace_and_make_uppercase(inst)
+    assert_is_blank(inst)
+    assert_in_set(inst, INST_SET)
+    return inst  
+
+def parse_reingest(reingest):
+    '''remove whitespace and check if valid'''
+    reingest = remove_whitespace_and_make_uppercase(reingest)
+    assert_is_blank(reingest)
+    assert_in_set(reingest, VALID_BOOL)
+    return reingest 
+
+def parse_testonly(testonly):
+    '''remove whitespace and check if valid'''
+    testonly = remove_whitespace_and_make_uppercase(testonly)
+    assert_is_blank(testonly)
+    assert_in_set(testonly, VALID_BOOL)
+    return testonly
+
+def parse_ingesttype(ingesttype):
+    '''remove whitespace and set to lowercase. Result should be in INGEST_TYPES set'''
+    ingesttype = remove_whitespace_and_make_lowercase(ingesttype)
+    assert_is_blank(ingesttype)
+    assert_in_set(ingesttype, INGEST_TYPES)
+    return ingesttype
 
 def parse_utdate(utdate):
     try:
-        datetime = datetime.datetime.strptime(utdate, '%Y-%m-%d')
+        t = datetime.strptime(utdate, '%Y-%m-%d')
     except:
-        raise Exception('date not valid. Is the format YYYY-MM-DD?')
-    return utdate 
+        raise DateParseException('date not valid. Is the format YYYY-MM-DD?')
+    return utdate
 
 def parse_koaid(koaid):
     '''
@@ -40,9 +76,9 @@ def parse_koaid(koaid):
     inst, date, seconds, dec, ftype = koaid.split('.')
     assert inst in INST_SET, 'instrument not valid'
     try:
-        datetime = datetime.datetime.strptime(date, '%Y%m%d')
+        t = datetime.strptime(date, '%Y%m%d')
     except:
-        raise Exception('date not valid. Is the format YYYYMMDD?')
+        raise DateParseException('date not valid. Is the format YYYYMMDD?')
     assert len(seconds) == 5, 'check seconds length'
     assert seconds.isdigit(), 'check if seconds is positive integer'
     assert len(dec) == 2, 'check decimal length'
@@ -55,24 +91,6 @@ def parse_koaid(koaid):
 def parse_message(msg):
     return msg
 
-def parse_reingest(reingest):
-    '''remove whitespace and check if valid'''
-    reinjest = ''.join(reinjest.split())
-    assert reingest.lower() in VALID_BOOL, 'reingest not valid boolean'
-    return reinjest 
-
-def parse_dev(dev):
-    '''remove whitespace and check if valid'''
-    dev = ''.join(dev.split())
-    assert dev.lower() in VALID_BOOL, 'dev not valid boolean'
-    return dev
-
-def parse_ingesttype(ingesttype):
-    '''remove whitespace and set to lowercase. Result should be in INGEST_TYPES set'''
-    ingesttype = ''.join(ingesttype.split())
-    assert ingesttype in INGEST_TYPES, 'ingesttype not valid'
-    return ingesttype
-
 def parse_query_param(key, value):
     SWITCHER = {
         "inst": parse_status,
@@ -81,7 +99,7 @@ def parse_query_param(key, value):
         "status": parse_status,
         "message": parse_message,
         "reingest": parse_reingest,
-        "dev": parse_dev,
+        "testonly": parse_testonly,
         "ingesttype": parse_ingesttype,
         }
     key = ''.join(key.split()).lower()

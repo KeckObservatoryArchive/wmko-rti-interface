@@ -30,115 +30,119 @@ class ingestTestBed(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def err_message_match(self, param, key, approvedSet, err):
+        return str(err).upper() in is_blank_msg(param).upper() or str(err).upper() in not_in_set_msg(param, approvedSet).upper()
 
-    def test_parse_status(self):
-        '''removes all whitespace and set to upper. Resulting string must be contained in STATUS_SET'''
+    def valid_set_checker(self, approvedSet, parse_fun, key):
 
-        # all whitespace
-        for status in self.generate_bad_strings(self.BAD_STRINGS, 2):
+        #  smoke test
+        for testParam in approvedSet:
             try:
-                pStatus = parse_status(status)
-                self.assertTrue(pStatus in STATUS_SET)
+                parsedString = parse_fun(testParam)
+                self.assertTrue(True)
+            except Exception as err:
+                self.assertTrue(False, str(err))
+
+        #  only whitespace
+        for testParam in self.generate_bad_strings(self.BAD_STRINGS, 2):
+            try:
+                parsedString = parse_fun(testParam)
+                self.assertFalse(parsedString in approvedSet)
             except AssertionError as err:
-                self.assertTrue('status is blank' in str(err))
-        STATUS_SET_WS = self.BAD_STRINGS.union(STATUS_SET)
-        STATUS_SET_WS.add('Error')
-        STATUS_SET_WS.add('DoNe')
-        # whitespace with valid strings
-        for status in self.generate_bad_strings(STATUS_SET_WS, 2):
+                errMsgMatch = self.err_message_match(testParam, key, approvedSet, err)
+                if not errMsgMatch:
+                    pdb.set_trace()
+                self.assertTrue(errMsgMatch)
+
+        #  valid strings with whitespace
+        approvedSetWithWhitespace = self.BAD_STRINGS.union(STATUS_SET)
+        for testParam in self.generate_bad_strings(approvedSetWithWhitespace, 2):
             try:
-                pStatus = parse_status(status)
-                if len(pStatus) == 0:
-                    continue # ignore whitespace for this test
-                self.assertTrue(pStatus in STATUS_SET)
+                parsedString = parse_fun(testParam)
+                self.assertTrue(parsedString in approvedSet)
             except AssertionError as err:
                 continue
 
-        INVALID_STATUS_SET = {'Err', 'Eror', 'CompleTED', '0'}.union()
-        INVALID_STATUS_SET_WS = set([INVALID_STATUS_SET_WS.add(ST) for ST in INVALID_STATUS_SET])
-        # invalid strings with no whitespace
-        for status in self.generate_bad_strings(self.INVALID_STATUS_SET_WS, 2):
-            with self.assertRaises(AssertionError) as context:
-                parse_status(status)
-                status = ''.join(status.split()).upper()
-            self.assertTrue(f'{status} not in STATUS_SET' in str(context.exception))
+    def invalid_set_checker(self, approvedSet, invalidSet, parse_fun, key):
+        invalidSetWithWhitespace = self.BAD_STRINGS.union(invalidSet)
+        #  invalid strings with whitespace
+        for testParam in self.generate_bad_strings(invalidSetWithWhitespace, 2):
+            try:
+                parsedString = parse_fun(testParam)
+                self.assertFalse(parsedString in approvedSet)
+            except AssertionError as err:
+                strP = ''.join(testParam.split()).upper()
+                blankErrMsg = is_blank_msg(strP).upper()
+                notInSetMsg = not_in_set_msg(strP, approvedSet).upper()
+                errMsgMatch = self.err_message_match(strP, key, approvedSet, err)
+                self.assertTrue(errMsgMatch)
         
-        # invalid strings with whitespace
-        for status in self.generate_bad_strings(INVALID_STATUS_SET, 1):
-            with self.assertRaises(AssertionError) as context:
-                parse_status(status)
-                status = ''.join(status.split()).upper()
-            self.assertTrue(f'{status} not in STATUS_SET' in str(context.exception))
+        #  invalid strings with no whitespace
+        for testParam in self.generate_bad_strings(invalidSet, 1):
+            try:
+                parsedString = parse_fun(testParam)
+                self.assertFalse(parsedString in approvedSet)
+            except AssertionError as err:
+                strP = ''.join(testParam.split()).upper()
+                errMsgMatch = self.err_message_match(strP, key, approvedSet, err)
+                self.assertTrue(errMsgMatch)
 
+    def test_parse_status(self):
+        invalidSet = {'Err', 'Eror', 'CompleTED', '0'}
+        self.valid_set_checker(STATUS_SET, parse_status, key='status')
+        self.invalid_set_checker(STATUS_SET, invalidSet, parse_status, key='status')
 
+    def test_parse_inst(self):
+        invalidSet = {'dee', 'ri', 'new_inst', 'eyeball'}
+        self.valid_set_checker(INST_SET, parse_inst, key='inst')
+        self.invalid_set_checker(INST_SET, invalidSet, parse_inst, key='inst')
 
+    def test_parse_ingesttype(self):
+        invalidSet = {'LEV0oops', 'defcon5', 'pft', 'ttry'}
+        self.valid_set_checker(INGEST_TYPES, parse_ingesttype, key='ingesttype')
+        self.invalid_set_checker(INGEST_TYPES, invalidSet, parse_ingesttype, key='ingesttype')
 
-    # def test_parse_inst(inst):
-    #     # '''removes all whitespace and set to upper. Resulting string must be found in INST_SET'''
-    #     # inst = ''.join(inst.split()).upper()
-    #     # assert inst in INST_SET, 'instrument not found in set'
-    #     # return inst 
+    def test_parse_reingest(self):
+        invalidSet = {'yep', 'nu-uh', 'negatory'}
+        self.valid_set_checker(VALID_BOOL, parse_reingest, key='reingest')
+        self.invalid_set_checker(VALID_BOOL, invalidSet, parse_reingest, key='reinget')
 
-    # def test_parse_utdate(utdate):
-    #     # try:
-    #     #     datetime = datetime.datetime.strptime(utdate, '%Y-%m-%d')
-    #     # except:
-    #     #     raise Exception('date not valid. Is the format YYYY-MM-DD?')
-    #     # return utdate 
+    def test_parse_testonly(self):
+        invalidSet = {'yep', 'nu-uh', 'negatory', 'ok...'} 
+        self.valid_set_checker(VALID_BOOL, parse_testonly, key='testonly')
+        self.invalid_set_checker(VALID_BOOL, invalidSet, parse_testonly, key='testonly')  
 
-    # def test_parse_koaid(koaid):
-    #     '''
-    #     koaid is run through assertions to check that it fits koaid format II.YYYYMMDD.SSSSS.SS.fits as described in 
-    #     https://keckobservatory.atlassian.net/wiki/spaces/DSI/pages/402882573/Ingestion+API+Interface+Control+Document+for+RTI
-    #     '''
-    #     # inst, date, seconds, dec, ftype = koaid.split('.')
-    #     # assert inst in INST_SET, 'instrument not valid'
-    #     # try:
-    #     #     datetime = datetime.datetime.strptime(date, '%Y%m%d')
-    #     # except:
-    #     #     raise Exception('date not valid. Is the format YYYYMMDD?')
-    #     # assert len(seconds) == 5, 'check seconds length'
-    #     # assert seconds.isdigit(), 'check if seconds is positive integer'
-    #     # assert len(dec) == 2, 'check decimal length'
-    #     # assert dec.isdigit(), 'check if decimal is positive integer'
-    #     # uttime = ''.join([seconds, dec])
-    #     # assert float(uttime) < 86400, 'seconds exceed day'
-    #     # assert fit == '.fits', 'check file type'
-    #     # return koaid
+    def test_parse_utdate(self):
+        goodDates = {'2020-03-01', '2020-02-29', '2020-10-31'}
+        badDates = {'2020-03-99', '20-12-31', '31-12-2020', '2029-02-29', '1977-1-1'}
+        #  smoke test
+        for testDate in goodDates:
+            parsedDate = parse_utdate(testDate)
+            self.assertTrue(True)
 
-    # def test_parse_status(status):
-    #     '''
-    #     checks if status is acceptible as stated in  
-    #     https://keckobservatory.atlassian.net/wiki/spaces/DSI/pages/402882573/Ingestion+API+Interface+Control+Document+for+RTI
-    #     '''
-    #     # assert status in STATUS_SET, 'status not found in STATUS_SET'
-    #     # return status
+        for testDate in badDates:
+            try:
+                parsedDate = parse_utdate(testDate)
+            except DateParseException as err:
+                self.assertEqual(str(err), 'date not valid. Is the format YYYY-MM-DD?')
 
-    # def test_parse_message(msg):
-    #     return msg
+    def test_parse_koaid(self):
+        validKoaids = {}
+        invalidKoaids = {}
+        for testId in validKoaids:
+            pkoaid = parse_koaid(testId)
+            self.assertTrue(True)
 
-    # def test_parse_reingest(reingest):
-    #     '''remove whitespace and check if valid'''
-    #     # reinjest = ''.join(reinjest.split())
-    #     # assert reingest.lower() in VALID_BOOL, 'reingest not valid boolean'
-    #     # return reinjest 
+        for testId in invalidKoaids:
+            try:
+                pkoaid = parse_koaid(testId)
+            except Exception as err:
+                self.assertEqual(str(err))
 
-    # def test_parse_dev(dev):
-    #     '''remove whitespace and check if valid'''
-    #     # dev = ''.join(dev.split())
-    #     # assert dev.lower() in VALID_BOOL, 'dev not valid boolean'
-    #     # return dev
-
-    # def test_parse_ingesttype(self):
-    #     '''remove whitespace and set to lowercase. Result should be in INGEST_TYPES set'''
-    #     self.assertRaises(AssertionError, parse_ingesttype(' '))
-    #     # ingesttype = ''.join(ingesttype.split())
-    #     # assert ingesttype in INGEST_TYPES, 'ingesttype not valid'
-    #     # return ingesttype
+    def test_parse_message(self):
+        msg = 'a message sHould NoT Be \n CHANGED.'
+        pMsg = parse_message(msg)
+        self.assertEqual(msg, pMsg)
 
 if __name__ == '__main__':
-    print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file__,__name__,str(__package__)))
-
-
-
     unittest.main()
