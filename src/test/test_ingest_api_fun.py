@@ -39,7 +39,7 @@ class ingestTestBed(unittest.TestCase):
         for testParam in approvedSet:
             try:
                 parsedString = parse_fun(testParam)
-                self.assertTrue(True)
+                self.assertTrue(True, 'parsed query parameter should be ok...')
             except Exception as err:
                 self.assertTrue(False, str(err))
 

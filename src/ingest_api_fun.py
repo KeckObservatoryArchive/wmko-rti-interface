@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from datetime import datetime
 import pdb
+from db_conn import db_conn
 
 class DateParseException(Exception):
     pass
@@ -19,6 +20,7 @@ not_in_set_msg = lambda s, st: f'{s} not found in set {st}'
 
 def assert_is_blank(param):
     assert len(param) > 0, is_blank_msg(param)
+	
 def assert_in_set(param, paramSet):
     assert param in paramSet, not_in_set_msg(param, paramSet)
 
@@ -83,13 +85,39 @@ def parse_koaid(koaid):
     assert seconds.isdigit(), 'check if seconds is positive integer'
     assert len(dec) == 2, 'check decimal length'
     assert dec.isdigit(), 'check if decimal is positive integer'
-    uttime = ''.join([seconds, dec])
+    uttime = ''.join([seconds, '.', dec])
     assert float(uttime) < 86400, 'seconds exceed day'
-    assert fit == '.fits', 'check file type'
+    assert ftype == 'fits', 'check file type'
+    koaid = koaid.replace(".fits", "")
     return koaid
 
 def parse_message(msg):
     return msg
+
+def update_lev_parameters(parsedParams):
+    lev = parsedParams['ingesttype']
+    #  create database object
+    db = db_conn('./config.live.ini')
+    koaid = parsedParams['koaid']
+    #  print('db info'.center(50, '='))
+    #  print(db)
+    query = f"select * from dep_status where koaid = '{koaid}'"
+    print('query'.center(50,'='))
+    print(query)
+
+    result = db.query('koa_test', query)
+    print(result)
+    #  check if unique
+    assert len(result) == 1, 'result should be unique'
+    #  update ipac_response_time
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
+    print('query'.center(50, '='))
+    print(updateQuery)
+    db.query('koa_test', updateQuery)
+    result = db.query('koa_test', query)
+    print('result'.center(50, '='))
+    print(result)
 
 def parse_query_param(key, value):
     SWITCHER = {
@@ -107,10 +135,14 @@ def parse_query_param(key, value):
     func = SWITCHER.get(key, lambda x: f"Invalid key {x}")
     return func(value)
 
+
+
 def ingest_api_fun():
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
     parsedParams = dict()
     for key, value in reqDict.items():
-        parsedParams[key] = parse_query_param(key, value)
+        if value:
+            parsedParams[key] = parse_query_param(key, value)
+    update_lev_parameters(parsedParams)
     return jsonify(parsedParams)
