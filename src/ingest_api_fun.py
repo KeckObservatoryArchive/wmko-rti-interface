@@ -1,11 +1,22 @@
 from flask import request, jsonify
-from datetime import datetime
+from datetime import datetime as dt
 import pdb
 from db_conn import db_conn
-
+from functools import wraps
 class DateParseException(Exception):
     pass
 
+def try_assert(method):
+    @wraps(method)
+    def tryer(*args, **kw):
+        err = None
+        try:
+            result = (method(*args, **kw), None)
+        except (AssertionError, DateParseException) as err:
+            print(err)
+            result = (None, err)
+        return result
+    return tryer
 INST_SET = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
 STATUS_SET = {'DONE', 'ERROR'}
@@ -65,7 +76,7 @@ def parse_ingesttype(ingesttype):
 
 def parse_utdate(utdate):
     try:
-        t = datetime.strptime(utdate, '%Y-%m-%d')
+        t = dt.strptime(utdate, '%Y-%m-%d')
     except:
         raise DateParseException('date not valid. Is the format YYYY-MM-DD?')
     return utdate
@@ -78,7 +89,7 @@ def parse_koaid(koaid):
     inst, date, seconds, dec, ftype = koaid.split('.')
     assert inst in INST_SET, 'instrument not valid'
     try:
-        t = datetime.strptime(date, '%Y%m%d')
+        t = dt.strptime(date, '%Y%m%d')
     except:
         raise DateParseException('date not valid. Is the format YYYYMMDD?')
     assert len(seconds) == 5, 'check seconds length'
@@ -94,13 +105,12 @@ def parse_koaid(koaid):
 def parse_message(msg):
     return msg
 
+@try_assert
 def update_lev_parameters(parsedParams):
     lev = parsedParams['ingesttype']
     #  create database object
     db = db_conn('./config.live.ini')
     koaid = parsedParams['koaid']
-    #  print('db info'.center(50, '='))
-    #  print(db)
     query = f"select * from dep_status where koaid = '{koaid}'"
     print('query'.center(50,'='))
     print(query)
@@ -108,9 +118,12 @@ def update_lev_parameters(parsedParams):
     result = db.query('koa_test', query)
     print(result)
     #  check if unique
-    assert len(result) == 1, 'result should be unique'
+    result = db.query('koa_test', query)
+    assert len(result) == 1, 'koaid should be unique'
+    print('result'.center(50, '='))
+    print(result)
     #  update ipac_response_time
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
@@ -118,10 +131,12 @@ def update_lev_parameters(parsedParams):
     result = db.query('koa_test', query)
     print('result'.center(50, '='))
     print(result)
+    return result
 
+@try_assert
 def parse_query_param(key, value):
     SWITCHER = {
-        "inst": parse_status,
+        "inst": parse_inst,
         "utdate": parse_utdate,
         "koaid": parse_koaid,
         "status": parse_status,
@@ -132,17 +147,27 @@ def parse_query_param(key, value):
         }
     key = ''.join(key.split()).lower()
     # Get the function from switcher dictionary
-    func = SWITCHER.get(key, lambda x: f"Invalid key {x}")
+    func = SWITCHER.get(key, lambda x: f"Invalid {key} has value {x}")
     return func(value)
-
-
 
 def ingest_api_fun():
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
     parsedParams = dict()
+    parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    ingest_errors = []
     for key, value in reqDict.items():
         if value:
-            parsedParams[key] = parse_query_param(key, value)
-    update_lev_parameters(parsedParams)
+            parsedParams[key], err = parse_query_param(key, value)
+            if err: ingest_errors.append(str(err))
+    
+    # _, err = update_lev_parameters(parsedParams)
+    if len(ingest_errors) == 0:
+        parsedParams['apiStatus'] = 'COMPLETE'
+    elif len(ingest_errors) == len(reqDict.keys()):
+        parsedParams['ingestErrors'] = ingest_errors
+        parsedParams['apiStatus'] = 'ERROR'
+    else:
+        parsedParams['ingestErrors'] = ingest_errors
+        parsedParams['apiStatus'] = 'INCOMPLETE'
     return jsonify(parsedParams)

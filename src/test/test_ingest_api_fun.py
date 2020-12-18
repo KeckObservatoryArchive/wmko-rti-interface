@@ -39,7 +39,7 @@ class ingestTestBed(unittest.TestCase):
         for testParam in approvedSet:
             try:
                 parsedString = parse_fun(testParam)
-                self.assertTrue(True, 'parsed query parameter should be ok...')
+                self.assertTrue(True)
             except Exception as err:
                 self.assertTrue(False, str(err))
 
@@ -144,5 +144,10 @@ class ingestTestBed(unittest.TestCase):
         pMsg = parse_message(msg)
         self.assertEqual(msg, pMsg)
 
+    def generate_random_query_param():
+        
+    def test_parse_query_param(self):
+        instSet = {}
+        utdateSet = {}
 if __name__ == '__main__':
     unittest.main()
