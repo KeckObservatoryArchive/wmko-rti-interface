@@ -35,7 +35,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
     global API_INSTANCE
-    var_get = parse_request()
+    var_get = parse_request(default_utd=False)
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 
@@ -243,7 +243,7 @@ def return_error(err, return_json, web_out):
         return proposalAPI_usage(err=err)
 
 
-def parse_request():
+def parse_request(default_utd=True):
     """
     Parse the url for the variable values,  set defaults
 
@@ -263,7 +263,7 @@ def parse_request():
         if not vars[key] and key in ['tel', 'dev', 'view']:
             vars[key] = 0
 
-    if not vars['utd']:
+    if not vars['utd'] and default_utd:
         vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
 
     if not vars['month']:
