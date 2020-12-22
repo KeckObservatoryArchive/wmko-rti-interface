@@ -121,7 +121,7 @@ def data_update():
 
     end_time = datetime.now() + timedelta(seconds=280)
     request_time = time.time()
-    while not API_INSTANCE.is_updated(request_time):
+    while not API_INSTANCE.has_changed(request_time):
         time.sleep(10.0)
         if datetime.now() > end_time:
             return {'results': 'null',

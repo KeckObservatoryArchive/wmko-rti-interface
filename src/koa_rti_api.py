@@ -48,7 +48,7 @@ class KoaRtiApi:
         self.limit = var_get.limit
         self.utd = var_get.utd
 
-        self.update_table_name(var_get.view)
+        self.change_table_name(var_get.view)
 
         if var_get.yr and var_get.month:
             self.monthly_date = f'{var_get.yr}-{var_get.month:0>2}'
@@ -367,7 +367,7 @@ class KoaRtiApi:
 
         return None
 
-    def update_table_name(self, table_view):
+    def change_table_name(self, table_view):
         """
         Update the variable for the table view.
 
@@ -586,7 +586,7 @@ class KoaRtiApi:
 
         return header
 
-    def is_updated(self, request_time):
+    def has_changed(self, request_time):
         """
         Returns True if resource is updated or it's the first time it has
         been requested.
