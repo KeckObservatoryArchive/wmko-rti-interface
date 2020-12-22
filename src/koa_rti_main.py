@@ -250,7 +250,8 @@ def parse_request():
     :return: (named tuple) day parameters
     """
     args = ['utd', 'utd2', 'search', 'update', 'val', 'view', 'tel', 'inst',
-            'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot']
+            'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot',
+            'columns', 'key', 'add', 'update_val']
 
     vars = dict((name, request.args.get(name)) for name in args)
     for key, val in vars.items():
@@ -275,7 +276,7 @@ def parse_request():
     if not request.args.get('posted'):
         vars['chk'] = 1
 
-    return namedtuple('x', vars.keys())(*vars.values())
+    return namedtuple('params', vars.keys())(*vars.values())
 
 
 def parse_args():
