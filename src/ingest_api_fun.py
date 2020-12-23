@@ -3,6 +3,7 @@ from datetime import datetime as dt
 import pdb
 from db_conn import db_conn
 from functools import wraps
+
 class DateParseException(Exception):
     pass
 
@@ -13,15 +14,21 @@ def try_assert(method):
         try:
             result = (method(*args, **kw), None)
         except (AssertionError, DateParseException) as err:
-            print(err)
+            result = (None, err)
+        except Exception as err:
             result = (None, err)
         return result
     return tryer
-INST_SET = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
+INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
+INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
+INST_MAPPING = {'DE': 'DEIMOS', 'DF': 'DEIMOS', 'EI': 'ESI', 'HI': 'HIRES', 'KB':'KCWI',\
+               'KF':'KCWI', 'LB':'LRIS', 'LR':'LRIS', 'MF':'MOSFIRE', 'N2':'NIRC2', 'NI': 'NIRES',\
+               'NR': 'NIRES', 'NC': 'NIRSPEC', 'NS': 'NIRSPEC', 'OI':'OSIRIS', 'OS': 'OSIRIS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
 STATUS_SET = {'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status'}
 
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
@@ -74,11 +81,11 @@ def parse_ingesttype(ingesttype):
     assert_in_set(ingesttype, INGEST_TYPES)
     return ingesttype
 
-def parse_utdate(utdate):
+def parse_utdate(utdate, format='%Y-%m-%d'):
     try:
-        t = dt.strptime(utdate, '%Y-%m-%d')
+        t = dt.strptime(utdate, format)
     except:
-        raise DateParseException('date not valid. Is the format YYYY-MM-DD?')
+        raise DateParseException(f'date {utdate} not valid. Is the format YYYY-MM-DD?')
     return utdate
 
 def parse_koaid(koaid):
@@ -86,12 +93,9 @@ def parse_koaid(koaid):
     koaid is run through assertions to check that it fits koaid format II.YYYYMMDD.SSSSS.SS.fits as described in 
     https://keckobservatory.atlassian.net/wiki/spaces/DSI/pages/402882573/Ingestion+API+Interface+Control+Document+for+RTI
     '''
-    inst, date, seconds, dec, ftype = koaid.split('.')
-    assert inst in INST_SET, 'instrument not valid'
-    try:
-        t = dt.strptime(date, '%Y%m%d')
-    except:
-        raise DateParseException('date not valid. Is the format YYYYMMDD?')
+    inst, utdate, seconds, dec, ftype = koaid.split('.')
+    assert_in_set(inst, INST_SET_ABBR)
+    t = parse_utdate(utdate, format='%Y%m%d')
     assert len(seconds) == 5, 'check seconds length'
     assert seconds.isdigit(), 'check if seconds is positive integer'
     assert len(dec) == 2, 'check decimal length'
@@ -106,32 +110,36 @@ def parse_message(msg):
     return msg
 
 @try_assert
-def update_lev_parameters(parsedParams):
+def update_lev_parameters(parsedParams, reingest, conn):
     lev = parsedParams['ingesttype']
-    #  create database object
-    db = db_conn('./config.live.ini')
     koaid = parsedParams['koaid']
     query = f"select * from dep_status where koaid = '{koaid}'"
     print('query'.center(50,'='))
     print(query)
 
-    result = db.query('koa_test', query)
+    result = conn.query('koa_test', query)
     print(result)
     #  check if unique
-    result = db.query('koa_test', query)
+    result = conn.query('koa_test', query)
     assert len(result) == 1, 'koaid should be unique'
     print('result'.center(50, '='))
     print(result)
+
+    #  check if reingest
+    if not reingest:
+        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
     #  update ipac_response_time
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
-    db.query('koa_test', updateQuery)
-    result = db.query('koa_test', query)
+    conn.query('koa_test', updateQuery)
+    result = conn.query('koa_test', query)
     print('result'.center(50, '='))
+    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
+    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     print(result)
-    return result
+    return parsedParams
 
 @try_assert
 def parse_query_param(key, value):
@@ -147,27 +155,52 @@ def parse_query_param(key, value):
         }
     key = ''.join(key.split()).lower()
     # Get the function from switcher dictionary
-    func = SWITCHER.get(key, lambda x: f"Invalid {key} has value {x}")
+    func = SWITCHER.get(key, lambda x: f"Invalid param {key} has value {x}")
+    assert not 'Invalid param' in func(value), f'{func(value)}'
     return func(value)
+
+def validate_ingest(parsedParams, ingestErrors):
+
+    if parsedParams.get('status') == 'ERROR' and not parsedParams.get('message', False):
+        ingestErrors.append('status==ERROR should include a message')
+    if not len(parsedParams) > 0:
+        parsedParams['apiStatus'] = 'ERROR'
+        ingestErrors.append('params is empty')
+    includesReqParams = all((req in parsedParams.keys() for req in REQUIRED_PARAMS))
+    if not includesReqParams:
+        parsedParams['apiStatus'] = 'ERROR'
+        ingestErrors.append('required params not included')
+    if len(ingestErrors) == 0:
+        parsedParams['apiStatus'] = 'COMPLETE'
+    else:
+        parsedParams['ingestErrors'] = ingestErrors
+        parsedParams['apiStatus'] = 'ERROR'
+    return parsedParams
+
+def parse_params(reqDict):
+    parsedParams = dict()
+    parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    ingestErrors = []
+    for key, value in reqDict.items():
+        if len(key) == '':
+            ingestErrors.append('key should not be blank')
+            continue
+        if value:
+            parsedParams[key], err = parse_query_param(key, value)
+            if err: ingestErrors.append(str(err))
+        else:
+            ingestErrors.append(f'{key} is blank')
+    parsedParams = validate_ingest(parsedParams, ingestErrors)
+    return parsedParams
 
 def ingest_api_fun():
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
-    parsedParams = dict()
-    parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    ingest_errors = []
-    for key, value in reqDict.items():
-        if value:
-            parsedParams[key], err = parse_query_param(key, value)
-            if err: ingest_errors.append(str(err))
-    
-    # _, err = update_lev_parameters(parsedParams)
-    if len(ingest_errors) == 0:
-        parsedParams['apiStatus'] = 'COMPLETE'
-    elif len(ingest_errors) == len(reqDict.keys()):
-        parsedParams['ingestErrors'] = ingest_errors
-        parsedParams['apiStatus'] = 'ERROR'
-    else:
-        parsedParams['ingestErrors'] = ingest_errors
-        parsedParams['apiStatus'] = 'INCOMPLETE'
+    parsedParams = parse_params(reqDict)
+    reingest = parsedParams.get('reingest', False)
+    testonly = parsedParams.get('testonly', False)
+    if not testonly:
+        #  create database object
+        conn = db_conn('./config.live.ini')
+        parsedParams, err = update_lev_parameters(parsedParams, reingest, conn)
     return jsonify(parsedParams)

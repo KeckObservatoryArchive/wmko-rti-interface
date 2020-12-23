@@ -1,11 +1,15 @@
+
 # from .. import ingest_api_fun
 import pytest
 import unittest
 import pdb
 import sys
+from random import randrange, randint, choice
 sys.path.append('..')
 from ingest_api_fun import *
 import itertools
+import string
+from datetime import timedelta, datetime
 
 class ingestTestBed(unittest.TestCase):
 
@@ -63,6 +67,33 @@ class ingestTestBed(unittest.TestCase):
             except AssertionError as err:
                 continue
 
+    @staticmethod
+    def generate_date_sample(baseDateStr='1990-01-01', nSamp=10, dformat='%Y-%m-%d'):
+        '''
+        samples dates falling within baseDate and today nSamp times.
+        '''
+
+        dateSet = set()
+        today = datetime.today()
+        baseDate = datetime.strptime(baseDateStr, dformat)
+        dayRange = (today-baseDate).days
+        while len(dateSet) < nSamp:
+            randDays = randrange(dayRange)
+            sampleDate = baseDate + timedelta(days=randDays)
+            dateSet.add(sampleDate.strftime(dformat))
+        return dateSet
+
+    def generate_koaid(self, baseDateStr='19900101', nDateSamp=10, dformat='%Y%m%d'):
+        dates = self.generate_date_sample(baseDateStr, nDateSamp, dformat)
+        seconds = [str(randrange(0, 86400, 1000)).zfill(5) for _ in range(0, nDateSamp)]
+        dec = [str(randrange(0, 100)).zfill(2) for _ in range(0, nDateSamp)]
+        ftype = ['fits']
+        koaids = []
+        for inst, date, sec, dec, ftype in  itertools.product(*[INST_SET_ABBR, dates, seconds, dec, ftype]):
+            koaid = '.'.join([inst, date, sec, dec, ftype])
+            koaids.append(koaid)
+        return koaids
+
     def invalid_set_checker(self, approvedSet, invalidSet, parse_fun, key):
         invalidSetWithWhitespace = self.BAD_STRINGS.union(invalidSet)
         #  invalid strings with whitespace
@@ -93,8 +124,12 @@ class ingestTestBed(unittest.TestCase):
         self.invalid_set_checker(STATUS_SET, invalidSet, parse_status, key='status')
 
     def test_parse_inst(self):
+        '''
+        instrument should have full name, case insensitive
+        '''
         invalidSet = {'dee', 'ri', 'new_inst', 'eyeball'}
-        self.valid_set_checker(INST_SET, parse_inst, key='inst')
+        approvedSet = INST_SET.union([x.lower() for x in INST_SET])
+        self.valid_set_checker(approvedSet, parse_inst, key='inst')
         self.invalid_set_checker(INST_SET, invalidSet, parse_inst, key='inst')
 
     def test_parse_ingesttype(self):
@@ -113,41 +148,114 @@ class ingestTestBed(unittest.TestCase):
         self.invalid_set_checker(VALID_BOOL, invalidSet, parse_testonly, key='testonly')  
 
     def test_parse_utdate(self):
-        goodDates = {'2020-03-01', '2020-02-29', '2020-10-31'}
-        badDates = {'2020-03-99', '20-12-31', '31-12-2020', '2029-02-29', '1977-1-1'}
+        goodDates = self.generate_date_sample(baseDateStr='19000101', nSamp=25, dformat='%Y%m%d') #{'2020-03-01', '2020-02-29', '2020-10-31'}
+        badDates = {'20200399', '201231', '31122020', '20290229', '197711'}
         #  smoke test
+        dformat = '%Y%m%d'
         for testDate in goodDates:
-            parsedDate = parse_utdate(testDate)
+            parsedDate = parse_utdate(testDate, dformat)
             self.assertTrue(True)
-
         for testDate in badDates:
             try:
-                parsedDate = parse_utdate(testDate)
+                parsedDate = parse_utdate(testDate, dformat)
             except DateParseException as err:
-                self.assertEqual(str(err), 'date not valid. Is the format YYYY-MM-DD?')
+                self.assertEqual(str(err), f'date {testDate} not valid. Is the format YYYY-MM-DD?')
 
     def test_parse_koaid(self):
-        validKoaids = {}
-        invalidKoaids = {}
+        validKoaids = self.generate_koaid()
         for testId in validKoaids:
             pkoaid = parse_koaid(testId)
             self.assertTrue(True)
-
-        for testId in invalidKoaids:
-            try:
-                pkoaid = parse_koaid(testId)
-            except Exception as err:
-                self.assertEqual(str(err))
 
     def test_parse_message(self):
         msg = 'a message sHould NoT Be \n CHANGED.'
         pMsg = parse_message(msg)
         self.assertEqual(msg, pMsg)
 
-    def generate_random_query_param():
-        
+    @staticmethod
+    def sample_from_set(mySet):
+        samp = tuple(mySet)[randint(0, len(mySet)-1)]
+        return samp
+
+    def generate_random_query_param_dict(self):
+        reqDict = dict()
+        koaid = self.generate_koaid(nDateSamp=1)[0]
+        instAbbr, utdate, seconds, dec, ftype = koaid.split('.')
+        reqDict['inst'] = INST_MAPPING[instAbbr]
+        reqDict['ingesttype'] = self.sample_from_set(INGEST_TYPES)
+        reqDict['koaid'] = koaid
+        reqDict['status'] = self.sample_from_set(STATUS_SET)
+        if reqDict['status'] == 'ERROR':
+            reqDict['message'] = 'status is ERROR'
+        return reqDict
+
     def test_parse_query_param(self):
-        instSet = {}
-        utdateSet = {}
+        for _ in range(0, 1000):
+            reqDict = self.generate_random_query_param_dict()
+            parsedParams = parse_params(reqDict)
+            self.assertFalse(parsedParams.get('ingestErrors', False), 'there should be no ingest errors')
+
+        # test if required fields missing error is working
+        for _ in range(0, 1000):
+            reqDict = self.generate_random_query_param_dict()
+            for _ in range(randint(1,3)):
+                reqDict.pop(choice(list(reqDict.keys())))
+
+            parsedParams = parse_params(reqDict)
+            ingestErrors = parsedParams.get('ingestErrors', False)
+            self.assertTrue(ingestErrors, 'there should be ingest errors')
+            self.assertNotEqual(len(ingestErrors), 0, 'there should be a missing key error')
+    
+    def test_for_missing_status_message(self):
+        '''
+        if status == ERROR there should be a message
+        '''
+        for _ in range(0, 100):
+            reqDict = self.generate_random_query_param_dict()
+            parsedParams = parse_params(reqDict)
+            if reqDict.get('status') == 'ERROR':
+                self.assertTrue(parsedParams.get('message', False), 'status should have message')
+                reqDict.pop('message')
+                pp = parse_params(reqDict)
+                ingestErrors = pp['ingestErrors']
+                self.assertEqual(len(ingestErrors), 1, 'should be one ingestError')
+                self.assertTrue('should include a message' in ingestErrors[0], f'check for correct error message {ingestErrors[0]}')
+
+    def test_parse_no_query_param(self):
+        '''
+        no params returns an error message
+        '''
+        parsedParams = parse_params(dict())
+        self.assertEqual(parsedParams['apiStatus'], 'ERROR', 'error should be reported')
+        self.assertEqual(len(parsedParams['ingestErrors']), 1, 'json should include one ingestError')
+        self.assertEqual(parsedParams['ingestErrors'][0], 'required params not included', 'check error msg')
+
+    def test_parse_invalid_param(self):
+        '''
+        invalid param returns an error
+        '''
+        letters = string.ascii_letters
+
+        for _ in range(0, 500):
+            reqDict = self.generate_random_query_param_dict()
+            # inject invalid param(s)
+            lValidKeys = len(reqDict)
+            for _ in range(randint(1, 5)):
+                lKey = randint(0,10)
+                lValue = randint(0, 100)
+                key = ''.join(choice(letters) for x in range(lKey)) # slight chance this will be valid...
+                value = ''.join(choice(letters) for x in range(lValue))
+                reqDict[key] = value
+
+            nInvalidParams = len(reqDict) - lValidKeys
+            
+            parsedParams = parse_params(reqDict)
+            self.assertEqual(parsedParams['apiStatus'], 'ERROR', 'error should be reported')
+            self.assertEqual(len(parsedParams['ingestErrors']), nInvalidParams, f'number of errors should be {nInvalidParams}')
+
+
+            
+
+
 if __name__ == '__main__':
     unittest.main()
