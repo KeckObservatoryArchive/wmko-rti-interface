@@ -199,7 +199,7 @@ def ingest_api_fun():
     parsedParams = parse_params(reqDict)
     reingest = parsedParams.get('reingest', False)
     testonly = parsedParams.get('testonly', False)
-    if not testonly:
+    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
         #  create database object
         conn = db_conn('./config.live.ini')
         parsedParams, err = update_lev_parameters(parsedParams, reingest, conn)
