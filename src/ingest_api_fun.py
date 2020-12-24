@@ -113,32 +113,44 @@ def parse_message(msg):
 def update_lev_parameters(parsedParams, reingest, conn):
     lev = parsedParams['ingesttype']
     koaid = parsedParams['koaid']
+
+    #  check if unique
     query = f"select * from dep_status where koaid = '{koaid}'"
     print('query'.center(50,'='))
     print(query)
-
     result = conn.query('koa_test', query)
-    print(result)
-    #  check if unique
-    result = conn.query('koa_test', query)
-    assert len(result) == 1, 'koaid should be unique'
+# This assert returns a null result
+#    assert len(result) == 1, 'koaid should be unique'
+    if len(result) != 1:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'koaid is missing or should be unique'
+        return parsedParams
+    result = result[0]
     print('result'.center(50, '='))
     print(result)
 
     #  check if reingest
-    if not reingest:
-        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
+    if not reingest and result['ipac_response_time']:
+# This assert returns a null result
+#        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'ipac_response_time already exists'
+        return parsedParams
     #  update ipac_response_time
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
-    conn.query('koa_test', updateQuery)
-    result = conn.query('koa_test', query)
+#    conn.query('koa_test', updateQuery)
+    result = conn.query('koa_test', updateQuery)
     print('result'.center(50, '='))
-    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
-    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     print(result)
+    if result != 1:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'error updating ipac_response_time'
+        return parsedParams
+#    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
+#    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     return parsedParams
 
 @try_assert
@@ -203,4 +215,5 @@ def ingest_api_fun():
         #  create database object
         conn = db_conn('./config.live.ini')
         parsedParams, err = update_lev_parameters(parsedParams, reingest, conn)
+        print(parsedParams, err)
     return jsonify(parsedParams)
