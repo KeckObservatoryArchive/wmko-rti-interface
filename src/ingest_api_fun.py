@@ -25,7 +25,7 @@ INST_MAPPING = {'DE': 'DEIMOS', 'DF': 'DEIMOS', 'EI': 'ESI', 'HI': 'HIRES', 'KB'
                'KF':'KCWI', 'LB':'LRIS', 'LR':'LRIS', 'MF':'MOSFIRE', 'N2':'NIRC2', 'NI': 'NIRES',\
                'NR': 'NIRES', 'NC': 'NIRSPEC', 'NS': 'NIRSPEC', 'OI':'OSIRIS', 'OS': 'OSIRIS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
-STATUS_SET = {'DONE', 'ERROR'}
+STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
 REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status'}
@@ -51,6 +51,7 @@ def parse_status(status):
     status = remove_whitespace_and_make_uppercase(status)
     assert_is_blank(status)
     assert_in_set(status, STATUS_SET)
+    if status == 'DONE': status = 'COMPLETE'
     return status
 
 def parse_inst(inst):
@@ -136,7 +137,7 @@ def update_lev_parameters(parsedParams, reingest, conn):
         return parsedParams
 
     #  check if reingest (type string)
-    if reingest == 'FALSE' and result['ipac_response_time']:
+    if str(reingest).upper() == 'FALSE' and result['ipac_response_time']:
 # This assert returns a null result
 #        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
         parsedParams['apiStatus'] = 'ERROR'
@@ -144,7 +145,11 @@ def update_lev_parameters(parsedParams, reingest, conn):
         return parsedParams
     #  update ipac_response_time
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
+    print(parsedParams['status'])
+    updateQuery = f"update dep_status set ipac_response_time='{now}'"
+    updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
+    msg = '' if parsedParams['status'] == 'COMPLETE' else parsedParams['message']
+    updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
 #    conn.query('koa_test', updateQuery)
