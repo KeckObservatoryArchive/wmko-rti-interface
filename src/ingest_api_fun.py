@@ -129,8 +129,8 @@ def update_lev_parameters(parsedParams, reingest, conn):
     print('result'.center(50, '='))
     print(result)
 
-    #  check if reingest
-    if not reingest and result['ipac_response_time']:
+    #  check if reingest (type string)
+    if reingest == 'FALSE' and result['ipac_response_time']:
 # This assert returns a null result
 #        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
         parsedParams['apiStatus'] = 'ERROR'
