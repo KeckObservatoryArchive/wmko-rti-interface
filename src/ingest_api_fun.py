@@ -114,9 +114,10 @@ def parse_message(msg):
 def update_lev_parameters(parsedParams, reingest, conn):
     lev = parsedParams['ingesttype']
     koaid = parsedParams['koaid']
+    instrument = parsedParams['inst']
 
     #  check if unique
-    query = f"select * from dep_status where koaid = '{koaid}'"
+    query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
     print('query'.center(50,'='))
     print(query)
     result = conn.query('koa_test', query)
