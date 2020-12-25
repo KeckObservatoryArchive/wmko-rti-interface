@@ -129,6 +129,12 @@ def update_lev_parameters(parsedParams, reingest, conn):
     print('result'.center(50, '='))
     print(result)
 
+    #  verify that status is TRANSFERRED, ERROR or COMPLETE
+    if result['status'] not in ['TRANSFERRED', 'ERROR', 'COMPLETE']:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = f"current status ({result['status']}) does not allow request"
+        return parsedParams
+
     #  check if reingest (type string)
     if reingest == 'FALSE' and result['ipac_response_time']:
 # This assert returns a null result
