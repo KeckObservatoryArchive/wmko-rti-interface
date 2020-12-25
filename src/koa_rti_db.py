@@ -49,12 +49,17 @@ class DatabaseInteraction:
         :return:
         """
         self.db = self.connect_db(self.db_name)
+
         if params:
             self.db.execute(query, params)
         else:
             self.db.execute(query)
 
-        result = self.db.fetchall()
+        if 'UPDATE' in query:
+            result = None
+        else:
+            result = self.db.fetchall()
+
         self.close_db_connection(self.db_name)
 
         return result

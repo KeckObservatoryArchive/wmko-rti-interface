@@ -42,12 +42,14 @@ class KoaRtiApi:
 
         self.default_num_columns = 7
         self.search_val = var_get.val
+        self.update_val = var_get.update_val
+        self.var_get = var_get
         self.table_view = None
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
 
-        self.update_table_name(var_get.view)
+        self.change_table_name(var_get.view)
 
         if var_get.yr and var_get.month:
             self.monthly_date = f'{var_get.yr}-{var_get.month:0>2}'
@@ -176,39 +178,39 @@ class KoaRtiApi:
 
         return results
 
-    def searchLOCATION(self):
-        """
-        provide access to file locations by date.  The results include the
-        original filename (OFNAME), the orginal file (stage file) and the
-        archive files location (archive dir)
+    def searchGENERAL(self):
+        query, params = self._generic_query(columns=self.var_get.columns,
+                                            key=self.var_get.key,
+                                            val=self.search_val,
+                                            add=self.var_get.add)
 
-        :return: (list / dict) the file locations by date
-        """
-        column_keys = "koaid, ofname, stage_file, archive_dir"
-        query, params = self._generic_query(key=column_keys)
-        results = self.db_functions.make_query(query, params)
-
-        return results
-
-    def searchARCHIVED(self):
-        """
-        Get the koaid and status for a date,   or the search parameters
-
-        :return: (dict) db results
-        """
-        keys = "koaid, status, ofname, stage_file, archive_dir, ofname_deleted"
-        key = "status"
-        #TODO change to archived once the status has been updated
-        # val = "ARCHIVED"
-        val = "Transferred"
-        add = "AND OFNAME_DELETED = False"
-        query, params = self._generic_query(keys=keys, key=key, val=val, add=add)
-
-        results = self.db_functions.make_query(query, params)
+        try:
+            results = self.db_functions.make_query(query, params)
+        except Exception as err:
+            results = str(err)
 
         return results
 
     # -- update section for api --
+    def updateGENERAL(self):
+        """
+        General update function to update a single column in the dep_satus table.
+
+        :return:
+        """
+        query = f"UPDATE dep_status SET {self.var_get.columns}=%s "
+        query += f"WHERE {self.var_get.key}=%s;"
+        params = (self.var_get.update_val, self.search_val)
+
+        try:
+            self.db_functions.make_query(query, params)
+        except Exception as err:
+            return str(err)
+
+        self.utd = None
+        results = self.searchGENERAL()
+
+        return results
 
     def updateMARKDELETED(self):
         # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
@@ -366,7 +368,7 @@ class KoaRtiApi:
 
         return None
 
-    def update_table_name(self, table_view):
+    def change_table_name(self, table_view):
         """
         Update the variable for the table view.
 
@@ -470,7 +472,7 @@ class KoaRtiApi:
 
         return stats
 
-    def _generic_query(self, keys=None, key=None, val=None,
+    def _generic_query(self, columns=None, key=None, val=None,
                        add=None, table='dep_status'):
         """
         Only uses UTD if added as an additional parameter.
@@ -480,10 +482,14 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        if keys and key and val:
-            query = f"SELECT {keys} FROM {table} WHERE {key} LIKE %s"
+        if columns and key and val:
+            query = f"SELECT {columns} FROM {table} WHERE {key} LIKE %s"
             params = ("%" + val + "%",)
             add_str = " AND "
+        elif columns:
+            query = f"SELECT {columns} FROM {table}"
+            params = ()
+            add_str = " WHERE "
         elif key and val:
             query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
             params = ("%" + val + "%", )
@@ -581,7 +587,7 @@ class KoaRtiApi:
 
         return header
 
-    def is_updated(self, request_time):
+    def has_changed(self, request_time):
         """
         Returns True if resource is updated or it's the first time it has
         been requested.
