@@ -21,13 +21,12 @@ def try_assert(method):
     return tryer
 INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
-INST_MAPPING = {'DE': 'DEIMOS', 'DF': 'DEIMOS', 'EI': 'ESI', 'HI': 'HIRES', 'KB':'KCWI',\
-               'KF':'KCWI', 'LB':'LRIS', 'LR':'LRIS', 'MF':'MOSFIRE', 'N2':'NIRC2', 'NI': 'NIRES',\
-               'NR': 'NIRES', 'NC': 'NIRSPEC', 'NS': 'NIRSPEC', 'OI':'OSIRIS', 'OS': 'OSIRIS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
 STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
-INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+# For now only allowing lev0
+#INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+INGEST_TYPES = {'lev0'}
 REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status'}
 
 
