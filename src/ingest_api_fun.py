@@ -47,6 +47,9 @@ remove_whitespace_and_make_lowercase = lambda s: ''.join(s.split()).lower()
 is_blank_msg = lambda s: f'{s} is blank'
 not_in_set_msg = lambda s, st: f'{s} not found in set {st}'
 
+def get_inst_long_name(instAbbr):
+    return [key for (key, vals) in INST_MAPPING.items() if instAbbr in vals][0]  # get long name of instrument
+
 def assert_is_blank(param):
     assert len(param) > 0, is_blank_msg(param)
 	
@@ -121,7 +124,6 @@ def parse_koaid(koaid):
 def parse_message(msg):
     return msg
 
-@try_assert
 def update_lev_parameters(parsedParams, reingest, conn):
     lev = parsedParams['ingesttype']
     koaid = parsedParams['koaid']
@@ -202,6 +204,12 @@ def validate_ingest(parsedParams):
     if not includesReqParams:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('required params not included')
+    #  check if koaid inst portion matches inst
+    koaid = parsedParams.get('koaid', False)
+    if koaid:
+        inst = get_inst_long_name(koaid.split('.')[0]) 
+        if not inst == parsedParams.get('inst'):
+            parsedParams['ingestErrors'].append(f'check that koaid {koaid} matches inst {inst}')
 
     if len(parsedParams['ingestErrors']) == 0:
         parsedParams['apiStatus'] = 'COMPLETE'
@@ -234,6 +242,6 @@ def ingest_api_fun():
     if parsedParams['apiStatus'] != 'ERROR' and not testonly:
         #  create database object
         conn = db_conn('./config.live.ini')
-        parsedParams, err = update_lev_parameters(parsedParams, reingest, conn)
+        parsedParams = update_lev_parameters(parsedParams, reingest, conn)
         print(parsedParams, err)
     return jsonify(parsedParams)
