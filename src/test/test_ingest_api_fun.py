@@ -181,11 +181,7 @@ class ingestTestBed(unittest.TestCase):
         reqDict = dict()
         koaid = self.generate_koaid(nDateSamp=1)[0]
         instAbbr = koaid.split('.')[0]
-        # VALID_INST = INST_MAPPING[instAbbr] # gets set of instrument tags
-        try:
-            instLongName = get_inst_long_name(instAbbr)
-        except:
-            pdb.set_trace()
+        instLongName = get_inst_long_name(instAbbr)
         reqDict['inst'] = instLongName 
         reqDict['ingesttype'] = self.sample_from_set(INGEST_TYPES)
         reqDict['koaid'] = koaid

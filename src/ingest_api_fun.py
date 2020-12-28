@@ -124,8 +124,8 @@ def parse_koaid(koaid):
 def parse_message(msg):
     return msg
 
-def update_lev_parameters(parsedParams, reingest, conn):
-    lev = parsedParams['ingesttype']
+
+def query_unique_row(parsedParams, conn, tblName):
     koaid = parsedParams['koaid']
     instrument = parsedParams['inst']
 
@@ -133,15 +133,42 @@ def update_lev_parameters(parsedParams, reingest, conn):
     query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
     print('query'.center(50,'='))
     print(query)
-    result = conn.query('koa_test', query)
+    result = conn.query(tblName, query)
     #  This assert returns a null result
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('koaid is missing or should be unique')
-        return parsedParams
     result = result[0]
     print('result'.center(50, '='))
     print(result)
+    return result, parsedParams
+
+def update_ipac_response_time(parsedParams, conn, tblName):
+    koaid = parsedParams['koaid']
+    now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    print(parsedParams['status'])
+    updateQuery = f"update dep_status set ipac_response_time='{now}'"
+    updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
+    msg = '' if parsedParams['status'] == 'COMPLETE' else parsedParams['message']
+    updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
+    print('query'.center(50, '='))
+    print(updateQuery)
+    result = conn.query(tblName, updateQuery)
+    print('result'.center(50, '='))
+    print(result)
+    if result != 1:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestErrors'].append('error updating ipac_response_time')
+#    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
+#    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
+    return result, parsedParams
+
+def update_lev_parameters(parsedParams, reingest, conn, tblName='koa_test'):
+
+    #  check if unique
+    result, parsedParams = query_unique_row(parsedParams, conn, tblName)
+    if len(result) != 1:
+        return parsedParams
 
     #  verify that status is TRANSFERRED, ERROR or COMPLETE
     if result['status'] not in VALID_DB_STATUS_VALUES:
@@ -154,25 +181,9 @@ def update_lev_parameters(parsedParams, reingest, conn):
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('ipac_response_time already exists')
         return parsedParams
-    #  update ipac_response_time
-    now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(parsedParams['status'])
-    updateQuery = f"update dep_status set ipac_response_time='{now}'"
-    updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
-    msg = '' if parsedParams['status'] == 'COMPLETE' else parsedParams['message']
-    updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
-    print('query'.center(50, '='))
-    print(updateQuery)
-#    conn.query('koa_test', updateQuery)
-    result = conn.query('koa_test', updateQuery)
-    print('result'.center(50, '='))
-    print(result)
-    if result != 1:
-        parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestErrors'].append('error updating ipac_response_time')
-        return parsedParams
-#    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
-#    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
+
+    _, parsedParams = update_ipac_response_time(parsedParams, conn, tblName)
+
     return parsedParams
 
 @try_assert
@@ -205,6 +216,7 @@ def validate_ingest(parsedParams):
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('required params not included')
     #  check if koaid inst portion matches inst
+
     koaid = parsedParams.get('koaid', False)
     if koaid:
         inst = get_inst_long_name(koaid.split('.')[0]) 
