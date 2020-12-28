@@ -181,7 +181,9 @@ class ingestTestBed(unittest.TestCase):
         reqDict = dict()
         koaid = self.generate_koaid(nDateSamp=1)[0]
         instAbbr, utdate, seconds, dec, ftype = koaid.split('.')
-        reqDict['inst'] = INST_MAPPING[instAbbr]
+        # VALID_INST = INST_MAPPING[instAbbr] # gets set of instrument tags
+        validInstKey = [key for (key, vals) in INST_MAPPING.items() if instAbbr in vals][0]  # get long name of instrument
+        reqDict['inst'] = validInstKey 
         reqDict['ingesttype'] = self.sample_from_set(INGEST_TYPES)
         reqDict['koaid'] = koaid
         reqDict['status'] = self.sample_from_set(STATUS_SET)

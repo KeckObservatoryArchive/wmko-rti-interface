@@ -21,7 +21,19 @@ def try_assert(method):
     return tryer
 INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
+INST_MAPPING = { 
+                 'DEIMOS': ['DE', 'DF'],
+                 'ESI': {'EI'},
+                 'HIRES': {'HI'},
+                 'KCWI': {'KB', 'KF'}, 
+                 'LRIS': {'LB', 'LR'},
+                 'MOSFIRE': {'MF'},
+                 'OSIRIS': {'OI', 'OS'},
+                 'NIRES': {'NR', 'NI'},
+                 'NIRC2': {'N2'},
+                }
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
+VALID_DB_STATUS_VALUES = {'TRANSFERRED', 'ERROR', 'COMPLETE'} 
 STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 # For now only allowing lev0
@@ -120,28 +132,25 @@ def update_lev_parameters(parsedParams, reingest, conn):
     print('query'.center(50,'='))
     print(query)
     result = conn.query('koa_test', query)
-# This assert returns a null result
-#    assert len(result) == 1, 'koaid should be unique'
+    #  This assert returns a null result
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestError'] = 'koaid is missing or should be unique'
+        parsedParams['ingestErrors'].append('koaid is missing or should be unique')
         return parsedParams
     result = result[0]
     print('result'.center(50, '='))
     print(result)
 
     #  verify that status is TRANSFERRED, ERROR or COMPLETE
-    if result['status'] not in ['TRANSFERRED', 'ERROR', 'COMPLETE']:
+    if result['status'] not in VALID_DB_STATUS_VALUES:
         parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestError'] = f"current status ({result['status']}) does not allow request"
+        parsedParams['ingestErrors'].append(f"current status ({result['status']}) does not allow request")
         return parsedParams
 
     #  check if reingest (type string)
     if str(reingest).upper() == 'FALSE' and result['ipac_response_time']:
-# This assert returns a null result
-#        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
         parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestError'] = 'ipac_response_time already exists'
+        parsedParams['ingestErrors'].append('ipac_response_time already exists')
         return parsedParams
     #  update ipac_response_time
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -158,7 +167,7 @@ def update_lev_parameters(parsedParams, reingest, conn):
     print(result)
     if result != 1:
         parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestError'] = 'error updating ipac_response_time'
+        parsedParams['ingestErrors'].append('error updating ipac_response_time')
         return parsedParams
 #    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
 #    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
@@ -182,38 +191,38 @@ def parse_query_param(key, value):
     assert not 'Invalid param' in func(value), f'{func(value)}'
     return func(value)
 
-def validate_ingest(parsedParams, ingestErrors):
+def validate_ingest(parsedParams):
 
     if parsedParams.get('status') == 'ERROR' and not parsedParams.get('message', False):
-        ingestErrors.append('status==ERROR should include a message')
+        parsedParams['ingestErrors'].append('status==ERROR should include a message')
     if not len(parsedParams) > 0:
         parsedParams['apiStatus'] = 'ERROR'
-        ingestErrors.append('params is empty')
+        parsedParams['ingestErrors'].append('params is empty')
     includesReqParams = all((req in parsedParams.keys() for req in REQUIRED_PARAMS))
     if not includesReqParams:
         parsedParams['apiStatus'] = 'ERROR'
-        ingestErrors.append('required params not included')
-    if len(ingestErrors) == 0:
+        parsedParams['ingestErrors'].append('required params not included')
+
+    if len(parsedParams['ingestErrors']) == 0:
         parsedParams['apiStatus'] = 'COMPLETE'
     else:
-        parsedParams['ingestErrors'] = ingestErrors
         parsedParams['apiStatus'] = 'ERROR'
     return parsedParams
 
 def parse_params(reqDict):
     parsedParams = dict()
     parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    ingestErrors = []
+    parsedParams['ingestErrors'] = []
     for key, value in reqDict.items():
         if len(key) == '':
-            ingestErrors.append('key should not be blank')
+            iparsedParams['ingestErrors'].append('key should not be blank')
             continue
         if value:
             parsedParams[key], err = parse_query_param(key, value)
-            if err: ingestErrors.append(str(err))
+            if err: parsedParams['ingestErrors'].append(str(err))
         else:
-            ingestErrors.append(f'{key} is blank')
-    parsedParams = validate_ingest(parsedParams, ingestErrors)
+            parsedParams['ingestErrors'].append(f'{key} is blank')
+    parsedParams = validate_ingest(parsedParams)
     return parsedParams
 
 def ingest_api_fun():
