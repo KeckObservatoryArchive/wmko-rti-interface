@@ -38,7 +38,7 @@ def ingest_api():
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
     global API_INSTANCE
-    var_get = parse_request()
+    var_get = parse_request(default_utd=False)
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 
@@ -124,7 +124,7 @@ def data_update():
 
     end_time = datetime.now() + timedelta(seconds=280)
     request_time = time.time()
-    while not API_INSTANCE.is_updated(request_time):
+    while not API_INSTANCE.has_changed(request_time):
         time.sleep(10.0)
         if datetime.now() > end_time:
             return {'results': 'null',
@@ -246,14 +246,15 @@ def return_error(err, return_json, web_out):
         return proposalAPI_usage(err=err)
 
 
-def parse_request():
+def parse_request(default_utd=True):
     """
     Parse the url for the variable values,  set defaults
 
     :return: (named tuple) day parameters
     """
     args = ['utd', 'utd2', 'search', 'update', 'val', 'view', 'tel', 'inst',
-            'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot']
+            'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot',
+            'columns', 'key', 'add', 'update_val']
 
     vars = dict((name, request.args.get(name)) for name in args)
     for key, val in vars.items():
@@ -265,7 +266,7 @@ def parse_request():
         if not vars[key] and key in ['tel', 'dev', 'view']:
             vars[key] = 0
 
-    if not vars['utd']:
+    if not vars['utd'] and default_utd:
         vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
 
     if not vars['month']:
@@ -278,7 +279,7 @@ def parse_request():
     if not request.args.get('posted'):
         vars['chk'] = 1
 
-    return namedtuple('x', vars.keys())(*vars.values())
+    return namedtuple('params', vars.keys())(*vars.values())
 
 
 def parse_args():

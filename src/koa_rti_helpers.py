@@ -12,6 +12,7 @@ import testall
 APP_PATH = path.abspath(path.dirname(__file__))
 TESTALL_PATH = '/kroot/rel/default/data'
 
+
 def year_range():
     """
     Create a list of years to be used with the drop down selection menu on the
@@ -110,7 +111,7 @@ def replace_datetime(results):
     :param results: <list> the query results.
     :return: <list> the list with date instead of a datetime object.
     """
-    if not results:
+    if not results or type(results) != list:
         return results
 
     datetime_keys = ["utdatetime","creation_time","dep_start_time",
@@ -131,21 +132,35 @@ def replace_datetime(results):
 
 def get_api_help_string():
     search_list = []
+    update_list = []
     for attribute in KoaRtiApi.__dict__:
         if 'search' in attribute:
             query_name = attribute.split('search')[1]
             search_list.append(query_name)
+        elif 'update' in attribute:
+            query_name = attribute.split('update')[1]
+            update_list.append(query_name)
 
     help_str = "<BR><BR>Options: <BR><UL>"
     help_str += f"<li>search={search_list}<BR>"
+    help_str += f"<li>update={update_list}<BR>"
+    help_str += "<li>columns=column1,column2,...,  columns to return"
+    help_str += "<li>key=key,  search key"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
+    help_str += "<li>add=string to add to end of query"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"
     help_str += "<li>limit=###,  the number of results to limit the search"
     help_str += "<li>inst=inst-name,  the instrument to limit the search"
     help_str += "<li>tel=#,  the number (1,2) of the telescope to limit the search"
     help_str += "<BR><BR>Example: <BR><UL>"
+    help_str += "<li>/koarti_api?search=GENERAL&val=TRANSFERRED&"
+    help_str += "columns=koaid,status,ofname,stage_file,archive_dir,ofname_deleted"
+    help_str += "&key=status&add=AND OFNAME_DELETED=0&utd=2020-12-20"
+    help_str += "&utd2=2020-12-21<BR>"
     help_str += "<li>/koarti_api?search=STATUS&val=Transferred&utd=2020-11-21"
+    help_str += "<li>/koarti_api?update=GENERAL&columns=ofname_deleted"
+    help_str += "&update_val=True&key=koaid&val=HI.20201104.1120.04"
 
     return help_str
 

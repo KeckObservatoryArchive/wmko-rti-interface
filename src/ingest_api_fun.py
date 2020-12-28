@@ -21,13 +21,12 @@ def try_assert(method):
     return tryer
 INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
-INST_MAPPING = {'DE': 'DEIMOS', 'DF': 'DEIMOS', 'EI': 'ESI', 'HI': 'HIRES', 'KB':'KCWI',\
-               'KF':'KCWI', 'LB':'LRIS', 'LR':'LRIS', 'MF':'MOSFIRE', 'N2':'NIRC2', 'NI': 'NIRES',\
-               'NR': 'NIRES', 'NC': 'NIRSPEC', 'NS': 'NIRSPEC', 'OI':'OSIRIS', 'OS': 'OSIRIS'}
 # STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
-STATUS_SET = {'DONE', 'ERROR'}
+STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
-INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+# For now only allowing lev0
+#INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
+INGEST_TYPES = {'lev0'}
 REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status'}
 
 
@@ -51,6 +50,7 @@ def parse_status(status):
     status = remove_whitespace_and_make_uppercase(status)
     assert_is_blank(status)
     assert_in_set(status, STATUS_SET)
+    if status == 'DONE': status = 'COMPLETE'
     return status
 
 def parse_inst(inst):
@@ -113,32 +113,55 @@ def parse_message(msg):
 def update_lev_parameters(parsedParams, reingest, conn):
     lev = parsedParams['ingesttype']
     koaid = parsedParams['koaid']
-    query = f"select * from dep_status where koaid = '{koaid}'"
+    instrument = parsedParams['inst']
+
+    #  check if unique
+    query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
     print('query'.center(50,'='))
     print(query)
-
     result = conn.query('koa_test', query)
-    print(result)
-    #  check if unique
-    result = conn.query('koa_test', query)
-    assert len(result) == 1, 'koaid should be unique'
+# This assert returns a null result
+#    assert len(result) == 1, 'koaid should be unique'
+    if len(result) != 1:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'koaid is missing or should be unique'
+        return parsedParams
+    result = result[0]
     print('result'.center(50, '='))
     print(result)
 
-    #  check if reingest
-    if not reingest:
-        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
+    #  verify that status is TRANSFERRED, ERROR or COMPLETE
+    if result['status'] not in ['TRANSFERRED', 'ERROR', 'COMPLETE']:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = f"current status ({result['status']}) does not allow request"
+        return parsedParams
+
+    #  check if reingest (type string)
+    if str(reingest).upper() == 'FALSE' and result['ipac_response_time']:
+# This assert returns a null result
+#        assert result.get('ipac_response_time', False), 'ipac_response_time already exists else ipac_reponse_time key missing'
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'ipac_response_time already exists'
+        return parsedParams
     #  update ipac_response_time
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    updateQuery = f"update dep_status set ipac_response_time = '{now}' where koaid = '{koaid}'"
+    print(parsedParams['status'])
+    updateQuery = f"update dep_status set ipac_response_time='{now}'"
+    updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
+    msg = '' if parsedParams['status'] == 'COMPLETE' else parsedParams['message']
+    updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
-    conn.query('koa_test', updateQuery)
-    result = conn.query('koa_test', query)
+#    conn.query('koa_test', updateQuery)
+    result = conn.query('koa_test', updateQuery)
     print('result'.center(50, '='))
-    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
-    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     print(result)
+    if result != 1:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestError'] = 'error updating ipac_response_time'
+        return parsedParams
+#    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
+#    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     return parsedParams
 
 @try_assert
@@ -199,8 +222,9 @@ def ingest_api_fun():
     parsedParams = parse_params(reqDict)
     reingest = parsedParams.get('reingest', False)
     testonly = parsedParams.get('testonly', False)
-    if not testonly:
+    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
         #  create database object
         conn = db_conn('./config.live.ini')
         parsedParams, err = update_lev_parameters(parsedParams, reingest, conn)
+        print(parsedParams, err)
     return jsonify(parsedParams)
