@@ -33,7 +33,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
-    return ingest_api()
+    return ingest_api_get()
 
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():

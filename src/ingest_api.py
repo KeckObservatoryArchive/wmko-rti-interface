@@ -245,7 +245,7 @@ def parse_params(reqDict):
     parsedParams = validate_ingest(parsedParams)
     return parsedParams
 
-def ingest_api():
+def ingest_api_get():
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
