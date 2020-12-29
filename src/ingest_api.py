@@ -22,15 +22,15 @@ def try_assert(method):
 INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
 INST_MAPPING = { 
-                 'DEIMOS': ['DE', 'DF'],
+                 'DEIMOS': {'DE', 'DF'},
                  'ESI': {'EI'},
                  'HIRES': {'HI'},
                  'KCWI': {'KB', 'KF'}, 
                  'LRIS': {'LB', 'LR'},
                  'MOSFIRE': {'MF'},
                  'OSIRIS': {'OI', 'OS'},
-                 'NIRES': {'NR', 'NI'},
-                 'NIRC2': {'N2'},
+                 'NIRES': {'NR', 'NI', 'NS'},
+                 'NIRC2': {'N2', 'NC'},
                 }
 VALID_DB_STATUS_VALUES = {'TRANSFERRED', 'ERROR', 'COMPLETE'} 
 STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}

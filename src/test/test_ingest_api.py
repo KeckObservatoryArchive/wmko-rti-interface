@@ -181,7 +181,11 @@ class ingestTestBed(unittest.TestCase):
         reqDict = dict()
         koaid = self.generate_koaid(nDateSamp=1)[0]
         instAbbr = koaid.split('.')[0]
-        instLongName = get_inst_long_name(instAbbr)
+        try:
+            instLongName = get_inst_long_name(instAbbr)
+        except:
+            pdb.set_trace()
+            print(instAbbr)
         reqDict['inst'] = instLongName 
         reqDict['ingesttype'] = self.sample_from_set(INGEST_TYPES)
         reqDict['koaid'] = koaid
@@ -191,7 +195,7 @@ class ingestTestBed(unittest.TestCase):
         return reqDict
 
     def test_parse_query_param(self):
-        for _ in range(0, 1000):
+    for _ in range(1000):
             reqDict = self.generate_random_query_param_dict()
             parsedParams = parse_params(reqDict)
             self.assertFalse(parsedParams.get('ingestErrora', False), 'there should be no ingest errors')
