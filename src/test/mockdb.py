@@ -4,7 +4,7 @@ import pdb
 import sys
 from random import randrange, randint, choice
 sys.path.append('..')
-from ingest_api_fun import * as iaf
+from ingest_api import * as iaf
 import itertools
 import string
 from datetime import timedelta, datetime

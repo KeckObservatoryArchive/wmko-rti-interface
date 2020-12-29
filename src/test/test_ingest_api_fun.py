@@ -1,12 +1,12 @@
 
-# from .. import ingest_api_fun
+# from .. import ingest_api
 import pytest
 import unittest
 import pdb
 import sys
 from random import randrange, randint, choice
 sys.path.append('..')
-from ingest_api_fun import *
+from ingest_api import *
 import itertools
 import string
 from datetime import timedelta, datetime
@@ -194,7 +194,7 @@ class ingestTestBed(unittest.TestCase):
         for _ in range(0, 1000):
             reqDict = self.generate_random_query_param_dict()
             parsedParams = parse_params(reqDict)
-            self.assertFalse(parsedParams.get('ingestErrors', False), 'there should be no ingest errors')
+            self.assertFalse(parsedParams.get('ingestErrora', False), 'there should be no ingest errors')
 
         # test if required fields missing error is working
         for _ in range(0, 1000):

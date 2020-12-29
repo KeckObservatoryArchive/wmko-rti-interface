@@ -32,7 +32,6 @@ INST_MAPPING = {
                  'NIRES': {'NR', 'NI'},
                  'NIRC2': {'N2'},
                 }
-# STATUS_SET = {'QUEUED', 'PROCESSING', 'COMPLETE', 'INVALID', 'EMPTY_FILE', 'DUPLICATE_FILE', 'ERROR'}
 VALID_DB_STATUS_VALUES = {'TRANSFERRED', 'ERROR', 'COMPLETE'} 
 STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
 VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
@@ -246,7 +245,7 @@ def parse_params(reqDict):
     parsedParams = validate_ingest(parsedParams)
     return parsedParams
 
-def ingest_api_fun():
+def ingest_api():
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
@@ -256,5 +255,4 @@ def ingest_api_fun():
         #  create database object
         conn = db_conn('./config.live.ini')
         parsedParams = update_lev_parameters(parsedParams, reingest, conn)
-        print(parsedParams, err)
     return jsonify(parsedParams)
