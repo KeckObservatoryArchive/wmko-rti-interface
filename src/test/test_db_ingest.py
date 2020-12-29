@@ -66,9 +66,39 @@ class dbIngestTestBed(ingestTestBed):
         print('update test result'.center(50))
         print(result) 
 
-
     def test_update_lev_parameters(self):
-        pass
+        #  test ingestion of current items in database
+        # get lots of database entries
+        tblName = 'koa_test'
+        self.generate_random_query_param_dict()
+        keys = ['id', 'instrument', 'status', 'status_code', 'koaid', ]
+        query = f'SELECT {" ".join(keys)} FROM {tblName} LIMIT 900'
+        result = self.conn.query(tblName, query)
+        for row in result:
+            
+            t1 = datetime.datetime.now()
+            reqDict = { key: value for key, value in row.items()}
+            reqDict['testonly'] = True
+            reqDict['reingest'] = True
+            reqDict['ingesttype'] = 'lev0'
+            reqDict['koaid'] = '.'.join([reqDict['koaid'], 'fits'])
+            reqDict['inst'] = reqDict.pop('instrument')
+
+            parsedParams = parse_params(reqDict)
+                #  check if unique
+            queryResult, parsedParams = query_unique_row(parsedParams, conn, tblName)
+            if len(result) != 1:
+            self.assertNotEqual(len(queryResult), 1, 'check query_unique_row')
+
+            #  verify that status is TRANSFERRED, ERROR or COMPLETE
+            self.assertTrue(result['status'] in VALID_DB_STATUS_VALUES, 'check status')
+
+            updateRes, parsedParams = update_ipac_response_time(parsedParams, conn, tblName)
+            t2 = datetime.datetime.now()
+            dt = (t2-t1).total_seconds()
+            self.assertEqual(updatRes == 1, 'check that update res is working')
+            print(f'update took {dt} seconds'.center(50, '='))
+
 
 if __name__ == '__main__':
     unittest.main()
