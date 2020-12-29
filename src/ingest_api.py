@@ -133,13 +133,14 @@ def query_unique_row(parsedParams, conn, tblName):
     print('query'.center(50,'='))
     print(query)
     result = conn.query(tblName, query)
+    print('result'.center(50, '='))
+    print(result)
     #  This assert returns a null result
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('koaid is missing or should be unique')
-    result = result[0]
-    print('result'.center(50, '='))
-    print(result)
+    else:
+        result = result[0]
     return result, parsedParams
 
 def update_ipac_response_time(parsedParams, conn, tblName):
