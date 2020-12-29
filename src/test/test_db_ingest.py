@@ -39,7 +39,6 @@ class dbIngestTestBed(ingestTestBed):
 
         #reqDict = self.generate_random_query_param_dict()
 	# mimick of         # curl http://vm-koarti:55557/ingest_api?instrument=hires&koaid=HI.20201108.58267.64.fits&utdate=2020-11-08&ingesttype=lev0&status=DONE&message-ok        
-        self.parsedParams['koaid'] = self.TEST_ROW[0].get('koaid')
         reqDict = {}
         reqDict['koaid'] = 'HI.20201108.58267.64.fits'
         reqDict['inst'] = 'HIRES'
