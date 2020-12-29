@@ -13,7 +13,6 @@ class dbIngestTestBed(ingestTestBed):
     Checks that ingestion API correctly adds values according to database. 
     this test bed inherits from ingestTestBed.
     '''
-    
 
     def setUp(self):
         super().setUp()
