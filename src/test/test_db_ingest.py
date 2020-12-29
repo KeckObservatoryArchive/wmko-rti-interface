@@ -1,9 +1,9 @@
 import unittest
 import pdb
 import sys
-from test_ingest_api_fun import ingestTestBed
+from test_ingest_api import ingestTestBed
 sys.path.append('..')
-from ingest_api_fun import *
+from ingest_api import *
 from db_conn import db_conn
 from unittest import mock
 import datetime

@@ -5,7 +5,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from os import path, stat
-from ingest_api_fun import *
+from ingest_api import *
 from koa_rti_api import KoaRtiApi
 from koa_rti_db import DatabaseInteraction
 from koa_rti_helpers import get_api_help_string, InstrumentReport
@@ -33,7 +33,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
-    return ingest_api_fun()
+    return ingest_api()
 
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
