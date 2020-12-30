@@ -67,38 +67,43 @@ class dbIngestTestBed(ingestTestBed):
         print(result) 
 
     def test_update_lev_parameters(self):
-        #  test ingestion of current items in database
-        # get lots of database entries
-        tblName = 'koa_test'
+        #  test ingestion of current items in database (limit set)
+        tblName = 'dep_status'
+        dbName = 'koa_test'
         self.generate_random_query_param_dict()
-        keys = ['id', 'instrument', 'status', 'status_code', 'koaid', ]
-        query = f'SELECT {" ".join(keys)} FROM {tblName} LIMIT 900'
-        result = self.conn.query(tblName, query)
+        keys = ['id', 'instrument', 'status', 'status_code', 'koaid']
+        query = f'SELECT {",".join(keys)} FROM {tblName} WHERE koaid IS NOT NULL LIMIT 900;'
+        result = self.conn.query(dbName, query)
         for row in result:
             
             t1 = datetime.datetime.now()
             reqDict = { key: value for key, value in row.items()}
-            reqDict['testonly'] = True
-            reqDict['reingest'] = True
+            reqDict['testonly'] = 'True'
+            reqDict['reingest'] = 'True'
             reqDict['ingesttype'] = 'lev0'
             reqDict['koaid'] = '.'.join([reqDict['koaid'], 'fits'])
             reqDict['inst'] = reqDict.pop('instrument')
-
+            reqDict['status'] = 'COMPLETE'
+            [reqDict.pop(key) for key in ('id', 'status_code')]
             parsedParams = parse_params(reqDict)
-                #  check if unique
-            queryResult, parsedParams = query_unique_row(parsedParams, conn, tblName)
-            if len(result) != 1:
+            #  check if unique
+            queryResult, parsedParams = query_unique_row(parsedParams, self.conn, dbName)
+            if len(queryResult) == 0:
+                print(f'query did not return anything for db row {row}, \n skipping for now...')
+                continue
+            #self.assertNotEqual(len(queryResult), 0, f'query did not return anything for db row {row}')
             self.assertNotEqual(len(queryResult), 1, 'check query_unique_row')
-
+            
             #  verify that status is TRANSFERRED, ERROR or COMPLETE
-            self.assertTrue(result['status'] in VALID_DB_STATUS_VALUES, 'check status')
-
-            updateRes, parsedParams = update_ipac_response_time(parsedParams, conn, tblName)
+            self.assertTrue(queryResult['status'] in VALID_DB_STATUS_VALUES, 'check status')
+            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, dbName)
             t2 = datetime.datetime.now()
             dt = (t2-t1).total_seconds()
-            self.assertEqual(updatRes == 1, 'check that update res is working')
+            if not updateRes == 1:
+                updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, dbName)
+                continue
+            self.assertEqual(updateRes, 1, f'check that update res is working for row {row}')
             print(f'update took {dt} seconds'.center(50, '='))
-
 
 if __name__ == '__main__':
     unittest.main()

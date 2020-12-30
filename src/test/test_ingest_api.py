@@ -159,7 +159,7 @@ class ingestTestBed(unittest.TestCase):
             try:
                 parsedDate = parse_utdate(testDate, dformat)
             except DateParseException as err:
-                self.assertEqual(str(err), f'date {testDate} not valid. Is the format YYYY-MM-DD?')
+                self.assertEqual(str(err), f'date {testDate} not valid. Is the format {dformat}?')
 
     def test_parse_koaid(self):
         validKoaids = self.generate_koaid()
@@ -195,17 +195,16 @@ class ingestTestBed(unittest.TestCase):
         return reqDict
 
     def test_parse_query_param(self):
-    for _ in range(1000):
+        for _ in range(1000):
             reqDict = self.generate_random_query_param_dict()
             parsedParams = parse_params(reqDict)
             self.assertFalse(parsedParams.get('ingestErrora', False), 'there should be no ingest errors')
 
         # test if required fields missing error is working
-        for _ in range(0, 1000):
+        for _ in range(1000):
             reqDict = self.generate_random_query_param_dict()
             for _ in range(randint(1,3)):
                 reqDict.pop(choice(list(reqDict.keys())))
-
             parsedParams = parse_params(reqDict)
             ingestErrors = parsedParams.get('ingestErrors', False)
             self.assertTrue(ingestErrors, 'there should be ingest errors')
