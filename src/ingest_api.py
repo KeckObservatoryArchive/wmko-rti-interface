@@ -99,7 +99,7 @@ def parse_utdate(utdate, format='%Y-%m-%d'):
     try:
         t = dt.strptime(utdate, format)
     except:
-        raise DateParseException(f'date {utdate} not valid. Is the format YYYY-MM-DD?')
+        raise DateParseException(f'date {utdate} not valid. Is the format {format}?')
     return utdate
 
 def parse_koaid(koaid):
@@ -124,7 +124,7 @@ def parse_message(msg):
     return msg
 
 
-def query_unique_row(parsedParams, conn, tblName):
+def query_unique_row(parsedParams, conn, dbUser):
     koaid = parsedParams['koaid']
     instrument = parsedParams['inst']
 
@@ -132,7 +132,7 @@ def query_unique_row(parsedParams, conn, tblName):
     query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
     print('query'.center(50,'='))
     print(query)
-    result = conn.query(tblName, query)
+    result = conn.query(dbUser, query)
     print('result'.center(50, '='))
     print(result)
     #  This assert returns a null result
@@ -143,7 +143,7 @@ def query_unique_row(parsedParams, conn, tblName):
         result = result[0]
     return result, parsedParams
 
-def update_ipac_response_time(parsedParams, conn, tblName):
+def update_ipac_response_time(parsedParams, conn, dbUser):
     koaid = parsedParams['koaid']
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     print(parsedParams['status'])
@@ -153,7 +153,7 @@ def update_ipac_response_time(parsedParams, conn, tblName):
     updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
-    result = conn.query(tblName, updateQuery)
+    result = conn.query(dbUser, updateQuery)
     print('result'.center(50, '='))
     print(result)
     if result != 1:
@@ -163,10 +163,10 @@ def update_ipac_response_time(parsedParams, conn, tblName):
 #    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     return result, parsedParams
 
-def update_lev_parameters(parsedParams, reingest, conn, tblName='koa_test'):
+def update_lev_parameters(parsedParams, reingest, conn, dbUser='koa_test'):
 
     #  check if unique
-    result, parsedParams = query_unique_row(parsedParams, conn, tblName)
+    result, parsedParams = query_unique_row(parsedParams, conn, dbUser)
     if len(result) != 1:
         return parsedParams
 
@@ -182,7 +182,7 @@ def update_lev_parameters(parsedParams, reingest, conn, tblName='koa_test'):
         parsedParams['ingestErrors'].append('ipac_response_time already exists')
         return parsedParams
 
-    _, parsedParams = update_ipac_response_time(parsedParams, conn, tblName)
+    _, parsedParams = update_ipac_response_time(parsedParams, conn, dbUser)
 
     return parsedParams
 

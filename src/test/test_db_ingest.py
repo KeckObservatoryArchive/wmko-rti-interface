@@ -16,7 +16,7 @@ class dbIngestTestBed(ingestTestBed):
 
     def setUp(self):
         super().setUp()
-        self.tblName = 'koa_test'
+        self.dbUser = 'koa_test'
 
         self.TEST_ROW = [{'id': 412, 'koaid': 'HI.20201108.58267.64',\
                          'instrument': 'HIRES',\
@@ -57,53 +57,90 @@ class dbIngestTestBed(ingestTestBed):
         ingestErrors = self.parsedParams['ingestErrors']
         print(ingestErrors)
         self.assertTrue(len(ingestErrors) == 0, f'ingest error should be empty {ingestErrors}')
-        result, parsedParams = query_unique_row(self.parsedParams, self.conn,self.tblName)
+        result, parsedParams = query_unique_row(self.parsedParams, self.conn,self.dbUser)
         ingestErrors = parsedParams['ingestErrors']
         self.assertTrue(len(ingestErrors) == 0, f'ingest errors found: {ingestErrors}')
     
     def test_update_ipac_response_time(self):
-        result, parsedParams = update_ipac_response_time(self.parsedParams,self.conn , self.tblName)
+        result, parsedParams = update_ipac_response_time(self.parsedParams,self.conn , self.dbUser)
         print('update test result'.center(50))
-        print(result) 
+        print(result)
 
-    def test_update_lev_parameters(self):
-        #  test ingestion of current items in database (limit set)
-        tblName = 'dep_status'
-        dbName = 'koa_test'
-        self.generate_random_query_param_dict()
-        keys = ['id', 'instrument', 'status', 'status_code', 'koaid']
-        query = f'SELECT {",".join(keys)} FROM {tblName} WHERE koaid IS NOT NULL LIMIT 900;'
-        result = self.conn.query(dbName, query)
+    def transform_db_rows_into_req(self):
+        requests = []
+        keys = ['id', 'instrument', 'status', 'status_code', 'koaid', ]
+        query = f'SELECT {" ".join(keys)} FROM {self.tblName} LIMIT 900'
+        result = self.conn.query(self.dbUser, query)
         for row in result:
-            
             t1 = datetime.datetime.now()
             reqDict = { key: value for key, value in row.items()}
-            reqDict['testonly'] = 'True'
-            reqDict['reingest'] = 'True'
+            reqDict['testonly'] = True
+            reqDict['reingest'] = True
             reqDict['ingesttype'] = 'lev0'
             reqDict['koaid'] = '.'.join([reqDict['koaid'], 'fits'])
             reqDict['inst'] = reqDict.pop('instrument')
-            reqDict['status'] = 'COMPLETE'
-            [reqDict.pop(key) for key in ('id', 'status_code')]
-            parsedParams = parse_params(reqDict)
-            #  check if unique
-            queryResult, parsedParams = query_unique_row(parsedParams, self.conn, dbName)
-            if len(queryResult) == 0:
-                print(f'query did not return anything for db row {row}, \n skipping for now...')
-                continue
-            #self.assertNotEqual(len(queryResult), 0, f'query did not return anything for db row {row}')
-            self.assertNotEqual(len(queryResult), 1, 'check query_unique_row')
+            requests.append(reqDict)
+        return requests
+
+    def add_requests_to_db(self, requests):
+        dbUser = 'koadmin'
+        tbl = 'dep_status'
+        
+        for reqDict in requests:
+            val = {}
+            val['instrument'] = reqDict['inst']
+            val['status'] = 'COMPLETE'
+            val['msg'] = 'ttucker test row'
+            val['status_code'] = ''
+            val['koaid'] = reqDict['koaid'].replace('.fits', '')
+
+            insertQuery = f"INSERT INTO {tbl}(instrument, status, msg, status_code, koaid); VALUES({val.values())"
+            self.conn(dbUser, insertQuery, getInsert=True)
+
+    def remove_requests_from_db(self, requests):
+        dbUser = 'koaadmin'
+        tbl = 'dep_status'
+        for reqDict in requests:
+            koaid = reqDict.get('koaid').replace('.fits', '')
+            dropQuery = f"DELETE FROM {tbl} WHERE koaid == '{koaid}';"
+            # verify
+            findQuery = f"SELECT * FROM {tbl} WHERE koaid == '{koaid}';"
             
+            findResult = self.conn(self.dbUser, findQuery)
+            if not len(findResult) == 0:
+                print('WARNING row not removed'.center(50))
+
+
+    def test_update_lev_parameters(self):
+        #  test ingestion of current items in database
+        # get lots of database entries
+        randomRequests=False
+        if randomRequests:
+            requests = [ x for x in self.generate_random_query_param_dict()]
+            add_requests_to_db(self, requests)
+        else:
+            requests = self.transform_db_rows_into_req()
+        for row in self.transform_db_rows_into_req():
+            parsedParams = parse_params(reqDict)
+                #  check if unique
+            queryResult, parsedParams = query_unique_row(parsedParams, conn, self.dbUser)
+            if len(result) != 1:
+            self.assertNotEqual(len(queryResult), 1, 'check query_unique_row')
+
             #  verify that status is TRANSFERRED, ERROR or COMPLETE
-            self.assertTrue(queryResult['status'] in VALID_DB_STATUS_VALUES, 'check status')
-            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, dbName)
+            self.assertTrue(result['status'] in VALID_DB_STATUS_VALUES, 'check status')
+
+            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, self.dbUser)
             t2 = datetime.datetime.now()
             dt = (t2-t1).total_seconds()
-            if not updateRes == 1:
-                updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, dbName)
-                continue
-            self.assertEqual(updateRes, 1, f'check that update res is working for row {row}')
+            self.assertEqual(updatRes == 1, 'check that update res is working')
             print(f'update took {dt} seconds'.center(50, '='))
+
+        if randomRequests: #  remove items from test database
+            self.remove_requests_from_db(requests):
+
+            
+
 
 if __name__ == '__main__':
     unittest.main()
