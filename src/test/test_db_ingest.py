@@ -95,14 +95,11 @@ class dbIngestTestBed(ingestTestBed):
             self.conn.query(self.dbName, insertQuery)
 
     def remove_requests_from_db(self, requests):
-        for reqDict in requests:
-            koaid = reqDict.get('koaid').replace('.fits', '')
-            dropQuery = f"DELETE FROM {tbl} WHERE koaid == '{koaid}';"
-            # verify
-            findQuery = f"SELECT * FROM {self.tblName} WHERE koaid == '{koaid}';"
-            findResult = self.conn(self.dbName, findQuery)
-            if not len(findResult) == 0:
-                print('WARNING row not removed'.center(50))
+        deleteQuery = f"DELETE FROM {self.tblName} WHERE status_code='ttucker test row';"
+        delResult = self.conn.query(self.dbName, deleteQuery)
+        selQuery = f"SELECT COUNT(*) FROM {self.tblName} WHERE status_code='ttucker test row';"
+        selResult = self.conn.query(self.dbName, selQuery)
+        self.assertEqual(selResult[0]['COUNT(*)'], 0, 'check that test entries were removed');
 
     def generate_unique_random_request_list(self, nSamp=1000):
         '''list of reqDict samples of unique koaid'''
@@ -118,7 +115,7 @@ class dbIngestTestBed(ingestTestBed):
     def test_update_lev_parameters(self):
         #  test ingestion of current items in database
         # get lots of database entries
-        requests = self.generate_unique_random_request_list(10)
+        requests = self.generate_unique_random_request_list(1000)
         self.add_requests_to_db(requests)
         for reqDict in requests:
             t1 = datetime.datetime.now()
@@ -130,14 +127,13 @@ class dbIngestTestBed(ingestTestBed):
             #  verify that status is TRANSFERRED, ERROR or COMPLETE
             self.assertTrue(queryResult['status'] in VALID_DB_STATUS_VALUES, 'check status')
 
-            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, self.dbName)
+            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, self.dbName, reqDict.get('status_code'))
             t2 = datetime.datetime.now()
             dt = (t2-t1).total_seconds()
-            self.assertEqual(updatRes == 1, 'check that update res is working')
+            self.assertEqual(updateRes,1, 'check that update res is working')
             print(f'update took {dt} seconds'.center(50, '='))
 
-        if randomRequests: #  remove items from test database
-            self.remove_requests_from_db(requests)
+        self.remove_requests_from_db(requests)
 
             
 

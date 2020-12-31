@@ -143,13 +143,13 @@ def query_unique_row(parsedParams, conn, dbUser):
         result = result[0]
     return result, parsedParams
 
-def update_ipac_response_time(parsedParams, conn, dbUser):
+def update_ipac_response_time(parsedParams, conn, dbUser, defaultMsg=''):
     koaid = parsedParams['koaid']
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     print(parsedParams['status'])
     updateQuery = f"update dep_status set ipac_response_time='{now}'"
     updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
-    msg = '' if parsedParams['status'] == 'COMPLETE' else parsedParams['message']
+    msg = defaultMsg if  parsedParams['status'] == 'COMPLETE' else parsedParams['message']
     updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
