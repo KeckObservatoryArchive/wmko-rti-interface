@@ -6,7 +6,7 @@ sys.path.append('..')
 from ingest_api import *
 from db_conn import db_conn
 from unittest import mock
-import datetime
+import datetime as dt
 
 class dbIngestTestBed(ingestTestBed):
     '''
@@ -85,16 +85,15 @@ class dbIngestTestBed(ingestTestBed):
     def add_requests_to_db(self, requests):
         dbUser = 'koadmin'
         tbl = 'dep_status'
-        
         for reqDict in requests:
             val = {}
             val['instrument'] = reqDict['inst']
             val['status'] = 'COMPLETE'
             val['msg'] = 'ttucker test row'
             val['status_code'] = ''
+            val['ipac_response_time'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             val['koaid'] = reqDict['koaid'].replace('.fits', '')
-
-            insertQuery = f"INSERT INTO {tbl}(instrument, status, msg, status_code, koaid); VALUES({val.values())"
+            insertQuery = f"INSERT INTO {tbl}(instrument, status, msg, status_code, ipac_response_time, koaid); VALUES({val.values())"
             self.conn(dbUser, insertQuery, getInsert=True)
 
     def remove_requests_from_db(self, requests):
@@ -105,18 +104,27 @@ class dbIngestTestBed(ingestTestBed):
             dropQuery = f"DELETE FROM {tbl} WHERE koaid == '{koaid}';"
             # verify
             findQuery = f"SELECT * FROM {tbl} WHERE koaid == '{koaid}';"
-            
             findResult = self.conn(self.dbUser, findQuery)
             if not len(findResult) == 0:
                 print('WARNING row not removed'.center(50))
 
+    def generate_unique_random_request_list(self, nSamp=1000):
+        '''list of reqDict samples of unique koaid'''
+        koaids = set()
+        requests = []
+        while len(koaids) < nSamp:
+            reqDict = self.generate_random_query_param_dict()
+            if not reqDict['koaid'] in koaids:
+                koaids.add(reqDict['koaid'])
+                requests.append(reqDict)
+        return requests
 
     def test_update_lev_parameters(self):
         #  test ingestion of current items in database
         # get lots of database entries
         randomRequests=False
         if randomRequests:
-            requests = [ x for x in self.generate_random_query_param_dict()]
+            requests = self.generate_unique_random_request_list()
             add_requests_to_db(self, requests)
         else:
             requests = self.transform_db_rows_into_req()
