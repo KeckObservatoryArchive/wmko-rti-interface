@@ -6,7 +6,7 @@ sys.path.append('..')
 from ingest_api import *
 from db_conn import db_conn
 from unittest import mock
-import datetime as dt
+import datetime
 
 class dbIngestTestBed(ingestTestBed):
     '''
@@ -16,8 +16,8 @@ class dbIngestTestBed(ingestTestBed):
 
     def setUp(self):
         super().setUp()
-        self.dbUser = 'koa_test'
-
+        self.dbName = 'koa_test'
+        self.tblName = 'dep_status'
         self.TEST_ROW = [{'id': 412, 'koaid': 'HI.20201108.58267.64',\
                          'instrument': 'HIRES',\
                          'utdatetime': datetime.datetime(2020, 11, 8, 16, 11, 7),\
@@ -57,20 +57,20 @@ class dbIngestTestBed(ingestTestBed):
         ingestErrors = self.parsedParams['ingestErrors']
         print(ingestErrors)
         self.assertTrue(len(ingestErrors) == 0, f'ingest error should be empty {ingestErrors}')
-        result, parsedParams = query_unique_row(self.parsedParams, self.conn,self.dbUser)
+        result, parsedParams = query_unique_row(self.parsedParams, self.conn,self.dbName)
         ingestErrors = parsedParams['ingestErrors']
         self.assertTrue(len(ingestErrors) == 0, f'ingest errors found: {ingestErrors}')
     
     def test_update_ipac_response_time(self):
-        result, parsedParams = update_ipac_response_time(self.parsedParams,self.conn , self.dbUser)
+        result, parsedParams = update_ipac_response_time(self.parsedParams,self.conn, self.dbName)
         print('update test result'.center(50))
         print(result)
 
     def transform_db_rows_into_req(self):
         requests = []
         keys = ['id', 'instrument', 'status', 'status_code', 'koaid', ]
-        query = f'SELECT {" ".join(keys)} FROM {self.tblName} LIMIT 900'
-        result = self.conn.query(self.dbUser, query)
+        query = f'SELECT {",".join(keys)} FROM {self.tblName} LIMIT 900;'.lower()
+        result = self.conn.query(self.dbName, query)
         for row in result:
             t1 = datetime.datetime.now()
             reqDict = { key: value for key, value in row.items()}
@@ -83,28 +83,24 @@ class dbIngestTestBed(ingestTestBed):
         return requests
 
     def add_requests_to_db(self, requests):
-        dbUser = 'koadmin'
-        tbl = 'dep_status'
         for reqDict in requests:
             val = {}
             val['instrument'] = reqDict['inst']
             val['status'] = 'COMPLETE'
-            val['msg'] = 'ttucker test row'
-            val['status_code'] = ''
-            val['ipac_response_time'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            val['status_code'] = 'ttucker test row'
+            val['ipac_response_time'] = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             val['koaid'] = reqDict['koaid'].replace('.fits', '')
-            insertQuery = f"INSERT INTO {tbl}(instrument, status, msg, status_code, ipac_response_time, koaid); VALUES({val.values())"
-            self.conn(dbUser, insertQuery, getInsert=True)
+            dvals = str([x for x in val.values()]).replace('[', '').replace(']', '')
+            insertQuery = f"INSERT INTO {self.tblName}(instrument, status, status_code, ipac_response_time, koaid) VALUES({dvals})"
+            self.conn.query(self.dbName, insertQuery)
 
     def remove_requests_from_db(self, requests):
-        dbUser = 'koaadmin'
-        tbl = 'dep_status'
         for reqDict in requests:
             koaid = reqDict.get('koaid').replace('.fits', '')
             dropQuery = f"DELETE FROM {tbl} WHERE koaid == '{koaid}';"
             # verify
-            findQuery = f"SELECT * FROM {tbl} WHERE koaid == '{koaid}';"
-            findResult = self.conn(self.dbUser, findQuery)
+            findQuery = f"SELECT * FROM {self.tblName} WHERE koaid == '{koaid}';"
+            findResult = self.conn(self.dbName, findQuery)
             if not len(findResult) == 0:
                 print('WARNING row not removed'.center(50))
 
@@ -122,30 +118,26 @@ class dbIngestTestBed(ingestTestBed):
     def test_update_lev_parameters(self):
         #  test ingestion of current items in database
         # get lots of database entries
-        randomRequests=False
-        if randomRequests:
-            requests = self.generate_unique_random_request_list()
-            add_requests_to_db(self, requests)
-        else:
-            requests = self.transform_db_rows_into_req()
-        for row in self.transform_db_rows_into_req():
+        requests = self.generate_unique_random_request_list(10)
+        self.add_requests_to_db(requests)
+        for reqDict in requests:
+            t1 = datetime.datetime.now()
             parsedParams = parse_params(reqDict)
-                #  check if unique
-            queryResult, parsedParams = query_unique_row(parsedParams, conn, self.dbUser)
-            if len(result) != 1:
+            #  check if unique
+            queryResult, parsedParams = query_unique_row(parsedParams, self.conn, self.dbName)
             self.assertNotEqual(len(queryResult), 1, 'check query_unique_row')
 
             #  verify that status is TRANSFERRED, ERROR or COMPLETE
-            self.assertTrue(result['status'] in VALID_DB_STATUS_VALUES, 'check status')
+            self.assertTrue(queryResult['status'] in VALID_DB_STATUS_VALUES, 'check status')
 
-            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, self.dbUser)
+            updateRes, parsedParams = update_ipac_response_time(parsedParams, self.conn, self.dbName)
             t2 = datetime.datetime.now()
             dt = (t2-t1).total_seconds()
             self.assertEqual(updatRes == 1, 'check that update res is working')
             print(f'update took {dt} seconds'.center(50, '='))
 
         if randomRequests: #  remove items from test database
-            self.remove_requests_from_db(requests):
+            self.remove_requests_from_db(requests)
 
             
 
