@@ -123,11 +123,9 @@ def parse_koaid(koaid):
 def parse_message(msg):
     return msg
 
-
 def query_unique_row(parsedParams, conn, dbUser):
     koaid = parsedParams['koaid']
     instrument = parsedParams['inst']
-
     #  check if unique
     query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
     print('query'.center(50,'='))
@@ -139,8 +137,6 @@ def query_unique_row(parsedParams, conn, dbUser):
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('koaid is missing or should be unique')
-    else:
-        result = result[0]
     return result, parsedParams
 
 def update_ipac_response_time(parsedParams, conn, dbUser, defaultMsg=''):
@@ -159,17 +155,14 @@ def update_ipac_response_time(parsedParams, conn, dbUser, defaultMsg=''):
     if result != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('error updating ipac_response_time')
-#    parsedParams['dbStatus'] = result.get('status', 'no db status key in result')
-#    parsedParams['dbStatusCode'] = result.get('status_code', 'no db status code in result')
     return result, parsedParams
 
 def update_lev_parameters(parsedParams, reingest, conn, dbUser='koa_test'):
-
     #  check if unique
     result, parsedParams = query_unique_row(parsedParams, conn, dbUser)
-    if len(result) != 1:
+    if isinstance(result, list) and len(result) != 1:
         return parsedParams
-
+    result = result[0]
     #  verify that status is TRANSFERRED, ERROR or COMPLETE
     if result['status'] not in VALID_DB_STATUS_VALUES:
         parsedParams['apiStatus'] = 'ERROR'
