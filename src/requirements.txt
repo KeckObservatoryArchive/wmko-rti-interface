@@ -1,0 +1,10 @@
+certifi==2020.12.5
+click==7.1.2
+Flask==1.1.2
+itsdangerous==1.1.0
+Jinja2==2.11.2
+MarkupSafe @ file:///tmp/build/80754af9/markupsafe_1607027305082/work
+psutil @ file:///tmp/build/80754af9/psutil_1607027299213/work
+PyMySQL==0.10.1
+PyYAML==5.3.1
+Werkzeug==1.0.1

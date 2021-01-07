@@ -34,4 +34,4 @@ if ($cmd == "start") then
     endif
 endif
 
-/usr/local/anaconda/bin/python manager.py koa_rti_main $cmd --port 4444
+/usr/local/anaconda/bin/python manager.py koa_rti_main $cmd --port 55557 
