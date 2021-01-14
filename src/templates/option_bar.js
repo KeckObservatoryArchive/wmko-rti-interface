@@ -150,6 +150,21 @@ function change_options(val, inst_lists, on_load) {
         disable(to_block);
         enable(to_enable);
 
+    } else if (val == 'koadrp' || val == 'koatpx') {
+        let to_block = ['monthly_opts', 'plots', 'search_opts', 'view_opts'];
+        let to_enable = ['tel_opts', 'inst_opts', 'date_opts'];
+        block_div(to_block);
+        enable_div(to_enable);
+
+        to_enable = ["chk", "chk", "tel"];
+        to_block = ["yr", "month", "plot", "search", "val", "view"];
+        disable(to_block);
+        enable(to_enable)
+        if (on_load == 0) {
+            check("chk")
+        }
+        check_enable("chk", 'utd, utd2')
+
     } else if (val === 'health') {
         let to_block = ['search_opts', 'view_opts', 'monthly_opts',
                         'inst_opts', 'date_opts', 'plots', 'tel_opts', 'inst_opts'];
