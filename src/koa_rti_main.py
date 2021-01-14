@@ -1,7 +1,7 @@
 import calendar
 import sys
 import time
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from os import path, stat
@@ -11,6 +11,7 @@ from koa_rti_db import DatabaseInteraction
 from koa_rti_helpers import get_api_help_string, InstrumentReport
 from koa_rti_helpers import year_range, replace_datetime
 from koa_rti_plots import TimeBarPlot, OverlayTimePlot
+from koa_tpx_gui import tpx_gui
 
 import json
 import argparse
@@ -70,7 +71,19 @@ def tpx_rti_page():
     elif var_get.page == 'stats':
         page_name = "rti_metrics.html"
         results = rti_api.getPlots()
+    elif var_get.page in ['koatpx', 'koadrp']:
+        page_name = "tpx_gui.html"
+        results, db_columns = tpx_gui(var_get.page, API_INSTANCE)
+
+        return render_template(page_name, table=var_get.page,
+
+                               results=results, params=var_get,
+                               inst_lists=rti_api.getInstruments(), yrs=years,
+                               months=calendar.month_name,
+                               db_columns=db_columns, opt_lists=opt_lists)
+
     else:
+        # results are loaded by the long-polling routine
         page_name = "rti_table.html"
         results = None
 

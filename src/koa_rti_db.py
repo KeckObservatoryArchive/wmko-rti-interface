@@ -13,23 +13,25 @@ APP_PATH = path.abspath(path.dirname(__file__))
 class DatabaseInteraction:
     def __init__(self, dev):
         # config file for db,  ie config.live.ini
-        filename = path.join(APP_PATH, CONFIG_FILE)
+        self.filename = path.join(APP_PATH, CONFIG_FILE)
 
-        self.conn_obj = db_conn(filename)
+        self.conn_obj = db_conn(self.filename)
         if dev == 1:
             self.db_name = "koa_test"
         else:
             self.db_name = "koa"
         self.db = None
 
-    def connect_db(self, db_name):
+    def connect_db(self, db_name, second_try=False):
         conn = self.conn_obj.connect(db_name)
         if not conn:
             print("ought oh!")
         try:
             curse = conn.cursor(pymysql.cursors.DictCursor)
         except:
-            self.connect_db(db_name)
+            if second_try:
+                sys.exit(f"could not connect to the database: {db_name}")
+            self.connect_db(db_name, second_try=True)
 
         return curse
 
@@ -39,7 +41,7 @@ class DatabaseInteraction:
     def get_db_connection(self):
         return self.db
 
-    def make_query(self, query, params):
+    def make_query(self, query, params, db_name=None):
         """
         Query the DB.  Opening/Closing connection avoids issues with the cursor
         crashing.
@@ -48,7 +50,10 @@ class DatabaseInteraction:
         :param params: (tuple) the escaped parameters for the query string
         :return:
         """
-        self.db = self.connect_db(self.db_name)
+        if db_name:
+            self.db = self.connect_db(db_name)
+        else:
+            self.db = self.connect_db(self.db_name)
 
         if params:
             self.db.execute(query, params)
