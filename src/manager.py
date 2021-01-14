@@ -90,51 +90,52 @@ def process_start(pid, server, port=None, extra=None):
 
 
 #===================================== MAiN ===================================
+if True:
+    # Define input parameters
 
-# Define input parameters
+    parser = argparse.ArgumentParser(description='manager.py input parameters')
+    parser.add_argument('server', type=str, help='flask server module name')
+    parser.add_argument('command', type=str, help='start, stop, restart, check')
+    parser.add_argument("--port", type=str, dest="port", default=None, 
+                        help="Port to use for finding existing process and --port option to forward to app.")
+    parser.add_argument("--extra", type=str, dest="extra", default=None, 
+                        help="Extra arguemnts string to pass to app")
 
-parser = argparse.ArgumentParser(description='manager.py input parameters')
-parser.add_argument('server', type=str, help='flask server module name')
-parser.add_argument('command', type=str, help='start, stop, restart, check')
-parser.add_argument("--port", type=str, dest="port", default=None, 
-                    help="Port to use for finding existing process and --port option to forward to app.")
-parser.add_argument("--extra", type=str, dest="extra", default=None, 
-                    help="Extra arguemnts string to pass to app")
+    # Get input parameters
 
-# Get input parameters
+    args = parser.parse_args()
+    server  = args.server
+    command = args.command
+    port    = args.port
+    extra   = args.extra
 
-args = parser.parse_args()
-server  = args.server
-command = args.command
-port    = args.port
-extra   = args.extra
+    # Verify command
 
-# Verify command
+    assert command in ['start', 'stop', 'restart', 'check'], 'Incorrect command'
 
-assert command in ['start', 'stop', 'restart', 'check'], 'Incorrect command'
+    # get this script directory (assuming flask module exists here)
 
-# get this script directory (assuming flask module exists here)
+    dir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(dir)
 
-dir = os.path.dirname(os.path.realpath(__file__))
-os.chdir(dir)
+    # Check if server file exists
 
-# Check if server file exists
+    server = f'{dir}/{server}.py'
+    print(server)
+    assert os.path.isfile(server), print(f'server module {server} does not exist')
+    # Check if server is running
 
-server = f'{dir}/{server}.py'
-assert os.path.isfile(server), print(f'server module {server} does not exist')
-# Check if server is running
+    pid = is_server_running(server, port)
 
-pid = is_server_running(server, port)
+    # Do the request
 
-# Do the request
-
-if command == 'stop':
-    pid = process_stop(pid)
-elif command == 'start':
-    process_start(pid, server, port=port, extra=extra)
-elif command == 'restart':
-    pid = process_stop(pid)
-    process_start(pid, server, port=port, extra=extra)
-elif command == 'check':
-    pid = is_server_running(server, port, report=True)
-exit()
+    if command == 'stop':
+        pid = process_stop(pid)
+    elif command == 'start':
+        process_start(pid, server, port=port, extra=extra)
+    elif command == 'restart':
+        pid = process_stop(pid)
+        process_start(pid, server, port=port, extra=extra)
+    elif command == 'check':
+        pid = is_server_running(server, port, report=True)
+    exit()

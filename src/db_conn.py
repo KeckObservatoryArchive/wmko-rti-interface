@@ -1,6 +1,5 @@
 import os
 import yaml
-
 import pymysql.cursors
 
 
@@ -133,7 +132,7 @@ class db_conn(object):
             #execute query and determine return value by qtype
             if cursor:
                 cursor.execute(query)
-                if   qtype in ('select'): result = cursor.fetchall()
+                if   qtype.lower() in ('select'): result = cursor.fetchall()
                 elif getInsert          : result = cursor.fetchone()
                 else                    : result = cursor.rowcount
                 cursor.close()
@@ -148,8 +147,8 @@ class db_conn(object):
                 if isinstance(result, list): result = [row[getColumn] for row in result]
                 else                       : result = result[getColumn]
 
-        except Exception as e:
-            print ('ERROR: ', e)
+        except Exception as err:
+            print (f'ERROR: {err}')
             result = False
 
         finally:
