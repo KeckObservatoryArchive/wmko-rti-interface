@@ -32,9 +32,11 @@ def get_resource_as_string(name, charset='utf-8'):
 app = Flask(__name__, template_folder=TEMPLATE_PATH)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
+
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
     return ingest_api_get()
+
 
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
@@ -77,13 +79,7 @@ def tpx_rti_page():
     elif var_get.page in ['koatpx', 'koadrp']:
         page_name = "tpx_gui.html"
         results, db_columns = tpx_gui(var_get.page, API_INSTANCE)
-
-        return render_template(page_name, table=var_get.page,
-
-                               results=results, params=var_get,
-                               inst_lists=rti_api.getInstruments(), yrs=years,
-                               months=calendar.month_name,
-                               db_columns=db_columns, opt_lists=opt_lists)
+        print("what", results)
 
     else:
         # results are loaded by the long-polling routine

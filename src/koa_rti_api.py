@@ -224,10 +224,10 @@ class KoaRtiApi:
             query += "utdate like %s order by utdate desc, instr asc"
             params += (self.utd, )
 
-        results = self.db_functions.make_query(query, params)
+        print(query, params)
+        results = self.db_functions.make_query(query, params, "koaserver")
 
         return results
-
 
     def searchGENERAL(self):
         query, params = self._generic_query(columns=self.var_get.columns,

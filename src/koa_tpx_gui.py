@@ -8,20 +8,19 @@ def tpx_gui(table, api_instance):
         #column new header
         page_header = ['UT Date of Observation', 'Tel Instr', 'PI',
                        '# Original Files', '# Archived Files', 'Science Files',
-                       'Size(GB)', 'Summit Disk (sdata#)', 'Data On Stage Disk',
-                       'Files Archive-Ready', 'Metadata Sent', '2 DVDs Written',
-                       'DVD Stored @ CARA', 'Data Sent to NExScI',
-                       'TPX Complete', 'L1 Done', 'L1 Sent to NExScI',
-                       'L1 Complete']
+                       'Size(GB)', 'Summit Disk (sdata#)', 'Data Sent to NExSci',
+                       'Data On Stage Disk',
+                       'Files Archive-Ready', 'Metadata Sent', 'TPX Complete',
+                       'L1 Done', 'L1 Sent to NExScI', 'L1 Complete']
 
     #koadrp database SQL query/header
     else:
         results = api_instance.searchKOADRP()
 
         #column header
-        page_header = ['UT Date of Observation', 'Instrument',' Phase', 'Files',
-                       'Reduced','Start Time', 'Start Reduce', 'End Time',
-                       'Time Lost','Notes']
+        page_header = ['UT Date of Observation', 'Instrument', ' Phase', 'Files',
+                       'Reduced', 'Start Time', 'Start Reduce', 'End Time',
+                       'Time Lost', 'Notes']
 
     if not results:
         return results, page_header
@@ -63,9 +62,9 @@ def tpx_gui(table, api_instance):
     #if koadrp database
     else:
         #for each dictionary
-        for d in results:
+        for row in results:
             #for key and value in dictionary item
-            for k, v in d.items():
+            for k, v in row.items():
                 #if value is None or N/A, do not populate cell
                 if (v is None) or (v == "N/A"):
                     row[k] = ""

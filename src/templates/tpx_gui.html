@@ -6,15 +6,15 @@
 
     <table id="result_table" class="rti_table">
     <thead>
-
     {% for i in range(0, db_columns | length() ) %}
         <th>{{db_columns[i]}}</th>
     {% endfor %}
 
-    </thead>
-	<!-- initialize table -->
-{#	<table align="center">#}
+    {% for i in range(0, columns | length() ) %}
+        <th>{{columns[i]}}</th>
+    {% endfor %}
 
+    </thead>
     <tbody >
 	<!-- if no data exists for specified query -->
 	{% if not results %}
@@ -27,77 +27,73 @@
 	<!-- print nothing except for table header -->
 	{% else %}
 	<!-- if results does exist -->
-	{% for i in results %}
+	{% for result in results %}
 	<!-- if selected table is koatpx -->
-	{% if table == 'koatpx' %}
-		<tr>
+    {% if params.page == 'koatpx' %}
+
 			<!-- UT Date of Observation -->
-			<td>{{i["utdate"]}}</td>
+			<td>{{result["utdate"]}}</td>
 			<!-- Instrument -->
-			<td>{{i["instr"]}}</td>
+			<td>{{result["instr"]}}</td>
 			<!-- Principal Investigator -->
 			{% autoescape false %}
-			<td>{{i["pi"]|replace("/","<br/>")}}</td>
+			<td>{{result["pi"]|replace("/","<br/>")}}</td>
 			{% endautoescape %}
 			<!-- Number of Files -->
-			<td>{{i["files"]}}</td>
+			<td>{{result["files"]}}</td>
 			<!-- Number of Files Archived -->
-			<td>{{i["files_arch"]}}</td>
+			<td>{{result["files_arch"]}}</td>
 			<!-- Number of Science Files -->
-			<td>{{i["sci_files"]}}</td>
+			<td>{{result["sci_files"]}}</td>
 			<!-- File Size -->
-			<td>{{i["size"]}}</td>
+			<td>{{result["size"]}}</td>
 			<!-- Summit Data Number -->
-			<td>{{i["sdata"]}}</td>
+			<td>{{result["sdata"]}}</td>
 			<!-- On Disk Status and Time -->
-			<td nowrap class={{i["ondisk_stat"]}}>{{i["ondisk_stat"]}}<br>{{i["ondisk_time"]}}</td>
+			<td nowrap class={{result["ondisk_stat"]}}>{{result["ondisk_stat"]}}<br>{{result["ondisk_time"]}}</td>
 			<!-- Archive Status and Time -->
-			<td nowrap class={{i["arch_stat"]}}>{{i["arch_stat"]}}<br>{{i["arch_time"]}}</td>
+			<td nowrap class={{result["arch_stat"]}}>{{result["arch_stat"]}}<br>{{result["arch_time"]}}</td>
 			<!-- Metadata Status and Time -->
-			<td nowrap class={{i["metadata_stat"]}}>{{i["metadata_stat"]}}<br>{{i["metadata_time"]}}</td>
-			<!-- DVD Written Status and Time -->
-			<td nowrap class={{i["dvdwrit_stat"]}}>{{i["dvdwrit_stat"]}}<br>{{i["dvdwrit_time"]}}</td>
-			<!-- DVD Stored Status and Time -->
-			<td nowrap class={{i["dvdstor_stat"]}}>{{i["dvdstor_stat"]}}<br>{{i["dvdstor_time"]}}</td>
+			<td nowrap class={{result["metadata_stat"]}}>{{result["metadata_stat"]}}<br>{{result["metadata_time"]}}</td>
 			<!-- DVD Sent to NExScI Status and Time -->
-			<td nowrap class={{i["dvdsent_stat"]}}>{{i["dvdsent_stat"]}}<br>{{i["dvdsent_time"]}}</td>
+			<td nowrap class={{result["dvdsent_stat"]}}>{{result["dvdsent_stat"]}}<br>{{result["dvdsent_time"]}}</td>
 			<!-- TPX Status and Time -->
-			<td nowrap class={{i["tpx_stat"]}}>{{i["tpx_stat"]}}<br>{{i["tpx_time"]}}</td>
+			<td nowrap class={{result["tpx_stat"]}}>{{result["tpx_stat"]}}<br>{{result["tpx_time"]}}</td>
 			<!-- Level 1 Done -->
 			{% autoescape false %}
-			<td nowrap {% if i["lev1_done"] %} class="done" {% endif %}>{{i["lev1_done"]}}</td>
+			<td nowrap {% if result["lev1_done"] %} class="done" {% endif %}>{{result["lev1_done"]}}</td>
 			{% endautoescape %}
 			<!-- DRP Sent -->
 			{% autoescape false %}
-			<td nowrap {% if i["drpSent"] %} class="done" {% endif %}>{{i["drpSent"]}}</td>
+			<td nowrap {% if result["drpSent"] %} class="done" {% endif %}>{{result["drpSent"]}}</td>
 			{% endautoescape %}
 			<!-- Level 1 Completed Status and Time -->
-			<td nowrap class={{i["lev1_stat"]}}>{{i["lev1_stat"]}}<br>{{i["lev1_time"]}}</td>
+			<td nowrap class={{result["lev1_stat"]}}>{{result["lev1_stat"]}}<br>{{result["lev1_time"]}}</td>
 		</tr>
 	<!-- if selected table is koadrp -->
 	{% else %}
 		<tr>
 			<!-- UT Date of Observation -->
-			<td>{{i["utdate"]}}</td>
+			<td>{{result["utdate"]}}</td>
 			<!-- Instrument -->
-			<td>{{i["instr"]}}</td>
+			<td>{{result["instr"]}}</td>
 			<!-- Phase -->
-			<td>{{i["phase"]}}</td>
+			<td>{{result["phase"]}}</td>
 			<!-- Files -->
-			<td>{{i["files"]}}</td>
+			<td>{{result["files"]}}</td>
 			<!-- Reduced -->
-			<td>{{i["reduced"]}}</td>
+			<td>{{result["reduced"]}}</td>
 			<!-- Start Time -->
-			<td>{{i["startTime"]}}</td>
+			<td>{{result["startTime"]}}</td>
 			<!-- Start Reduce -->
-			<td>{{i["startReduce"]}}</td>
+			<td>{{result["startReduce"]}}</td>
 			<!-- End Time -->
-			<td>{{i["endTime"]}}</td>
+			<td>{{result["endTime"]}}</td>
 			<!-- Time Lost -->
-			<td>{{i["timeLost"]}}</td>
+			<td>{{result["timeLost"]}}</td>
 			<!-- Notes -->
 			{% autoescape false %}
-			<td {% if i["notes"] == "Failed" %} class="failed" {% elif "No" in i["notes"] or "no" in i["notes"] %} class="failed" {% elif i["notes"] != '' %} class="done" {% endif %}>{{i["notes"]}}</td>
+			<td {% if result["notes"] == "Failed" %} class="failed" {% elif "No" in result["notes"] or "no" in result["notes"] %} class="failed" {% elif result["notes"] != '' %} class="done" {% endif %}>{{result["notes"]}}</td>
 			{% endautoescape %}
 		</tr>
 	{% endif %}
