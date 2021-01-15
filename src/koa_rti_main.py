@@ -79,8 +79,6 @@ def tpx_rti_page():
     elif var_get.page in ['koatpx', 'koadrp']:
         page_name = "tpx_gui.html"
         results, db_columns = tpx_gui(var_get.page, API_INSTANCE)
-        print("what", results)
-
     else:
         # results are loaded by the long-polling routine
         page_name = "rti_table.html"
