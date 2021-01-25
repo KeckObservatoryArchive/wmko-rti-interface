@@ -208,13 +208,9 @@ class OverlayTimePlot(PlotBase):
 
 
 class TimeBudgetPie(PlotBase):
-    def __init__(self, results, title):
+    def __init__(self, results):
         """
-        Create a pie plot of the Activities over the night.
 
-        :param db: database connection
-        :param utd: (str) the utd YYYYMMDD
-        :param tel: (tel) the telescope number (1 or 2)
         """
         self.name = title
         self.insts = list(results.keys())
@@ -229,7 +225,7 @@ class TimeBudgetPie(PlotBase):
         data['color'] = self.set_colors(times)
 
         self.plt = figure(tools="pan,box_zoom,reset,save,hover", plot_width=900,
-                     plot_height=600, title="Activities Pie",
+                     plot_height=600, title="Time Budget",
                      tooltips="@typ: @total_tm hrs, @percentage{0.2f}%")
 
         self.plt.wedge(x=0, y=1, radius=0.6, source=data, fill_color='color',

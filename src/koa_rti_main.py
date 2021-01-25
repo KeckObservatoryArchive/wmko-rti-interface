@@ -194,7 +194,6 @@ def api_results():
 
 
 def return_results(success=1, results=None, msg=None):
-
     """
     Return the results.  If json,  the results are a dictionary of
     success,  data (the database query results), and any error messages.
