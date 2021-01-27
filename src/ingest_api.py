@@ -3,6 +3,7 @@ from datetime import datetime as dt
 import pdb
 from db_conn import db_conn
 from functools import wraps
+import json
 
 class DateParseException(Exception):
     pass
@@ -38,7 +39,7 @@ VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 # For now only allowing lev0
 #INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
 INGEST_TYPES = {'lev0'}
-REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status'}
+REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status', 'metrics'}
 
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
@@ -94,6 +95,15 @@ def parse_ingesttype(ingesttype):
     assert_is_blank(ingesttype)
     assert_in_set(ingesttype, INGEST_TYPES)
     return ingesttype
+
+def parse_metrics(metrics):
+    '''verifies JSON type'''
+    assert_is_blank(metrics)
+    try:
+        metrics = json.loads(metrics)
+    except:
+        assert metrics == None, 'Cannot parse metrics value'
+    return metrics
 
 def parse_utdate(utdate, format='%Y-%m-%d'):
     try:
@@ -190,6 +200,8 @@ def parse_query_param(key, value):
         "reingest": parse_reingest,
         "testonly": parse_testonly,
         "ingesttype": parse_ingesttype,
+        "ingest_error": parse_message,
+        "metrics": parse_metrics,
         }
     key = ''.join(key.split()).lower()
     # Get the function from switcher dictionary
@@ -233,7 +245,7 @@ def parse_params(reqDict):
         if value:
             parsedParams[key], err = parse_query_param(key, value)
             if err: parsedParams['ingestErrors'].append(str(err))
-        else:
+        elif key in REQUIRED_PARAMS:
             parsedParams['ingestErrors'].append(f'{key} is blank')
     parsedParams = validate_ingest(parsedParams)
     return parsedParams
