@@ -252,15 +252,17 @@ class KoaRtiApi:
         query += f"WHERE {self.var_get.key}=%s;"
         params = (self.var_get.update_val, self.search_val)
 
-        try:
-            self.db_functions.make_query(query, params)
-        except Exception as err:
-            return str(err)
+        # try:
+        #     self.db_functions.make_query(query, params)
+        # except Exception as err:
+        #     return str(err)
+        #
+        # self.utd = None
+        # results = self.searchGENERAL()
+        #
+        # return results
 
-        self.utd = None
-        results = self.searchGENERAL()
-
-        return results
+        return query + str(params)
 
     def updateMARKDELETED(self):
         # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
