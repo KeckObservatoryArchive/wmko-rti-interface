@@ -205,3 +205,97 @@ class OverlayTimePlot(PlotBase):
         plt.yaxis.axis_label = "Number of Files"
 
         self.plt = plt
+
+
+class TimeBudgetPie(PlotBase):
+    def __init__(self, results):
+        """
+
+        """
+        self.name = title
+        self.insts = list(results.keys())
+        super().__init__(self.insts)
+
+        times = self.read_times()
+
+        data = pd.Series(times).reset_index(name='time').rename(columns={'index': 'typ'})
+        data['angle'] = data['time'] / data['time'].sum() * 2 * pi
+        data['percentage'] = data['time'] / data['time'].sum() * 100.
+        data['total_tm'] = data['time'].astype(str).str[7:15]
+        data['color'] = self.set_colors(times)
+
+        self.plt = figure(tools="pan,box_zoom,reset,save,hover", plot_width=900,
+                     plot_height=600, title="Time Budget",
+                     tooltips="@typ: @total_tm hrs, @percentage{0.2f}%")
+
+        self.plt.wedge(x=0, y=1, radius=0.6, source=data, fill_color='color',
+                       start_angle=cumsum('angle', include_zero=True),
+                       end_angle=cumsum('angle'), line_color="white",
+                       legend='typ')
+
+        self.plt.axis.axis_label = None
+        self.plt.axis.visible = False
+        self.plt.grid.grid_line_color = None
+
+    def set_colors(self, times):
+        """
+        Define the colors to be used.
+
+        :param times: (dict) the times by category
+
+        :return: (list) a list of colors to use.
+        """
+        if times:
+            len_times = len(times)
+        else:
+            len_times = 1
+
+        if times and len_times < 3:
+            colors = []
+            for i in range(0,len_times):
+                colors.append(Category20[3][i])
+            return colors
+        elif times and len_times > 2:
+            return Category20[len_times]
+        else:
+            return Category20[20]
+
+    def read_times(self):
+        """
+        Determine the times for each category
+
+        :return: (dict) the times by category
+        """
+        times = {}
+        tallies = self._activity_tally()
+
+        if not tallies:
+            return None
+
+        for typ, name in self.fields.items():
+            time = self.get_time_total(tallies, typ)
+
+            if time:
+                if name in times:
+                    times[name] += time
+                else:
+                    times[name] = time
+
+        return times
+
+    def get_time_total(self, tallies, typ):
+        """
+        Find the total time for the category
+
+        :param tallies: (list / dict) the list of tallies by category
+        :param typ: (str) the tally key for the category
+
+        :return: (datetime) the total time
+        """
+        time = timedelta(hours=0)
+        for tally in tallies:
+            time += timedelta(seconds=tally[typ])
+
+        return time
+
+

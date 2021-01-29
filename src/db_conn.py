@@ -1,10 +1,6 @@
 import os
 import yaml
-# import psycopg2
-# from psycopg2.extras import RealDictCursor
-
 import pymysql.cursors
-
 
 
 class db_conn(object):
@@ -15,8 +11,9 @@ class db_conn(object):
 
     Config file follows yaml format and should contain one dict entry per database:
     {
-        "(database name)":
+        "(database alias)":
         {
+            "database" : (database name)
             "server" : (server name/ip),
             "user"   : (db username),
             "pwd"    : (db password,
@@ -28,7 +25,6 @@ class db_conn(object):
     - configFile: Filepath to yaml config file
     - configKey: Optionally define a config dict key if config is within a larger yaml file.
 
-    TODO: improve error/warning reporting and logging
     '''
 
     def __init__(self, configFile, configKey=None, persist=False):
@@ -48,23 +44,24 @@ class db_conn(object):
         self.conns = {}
 
 
-    def connect(self, database):
+    def connect(self, database_alias):
         '''
         Connect to the specified database.  
         '''
 
         #see if we already have a connection and if so ping it to keep alive and return it.
         #todo: read about conn.open == False?
-        if self.persist:                
-            if database in self.conns and self.conns[database]:
-                conn = self.conns[database]
+        if self.persist:
+            if database_alias in self.conns and self.conns[database_alias]:
+                conn = self.conns[database_alias]
                 conn.ping(reconnect=True)
                 return conn
 
 
         #get db connect data
-        assert database in self.config, f"ERROR: database '{database}' not defined in config file.  Exiting."
-        config = self.config[database]
+        assert database_alias in self.config, f"ERROR: database '{database_alias}' not defined in config file.  Exiting."
+        config = self.config[database_alias]
+        database     = config['database']
         server       = config['server']
         user         = config['user']
         pwd          = config['pwd']
@@ -87,9 +84,8 @@ class db_conn(object):
 
         #save connection
         if self.persist:
-            self.conns[database] = conn
+            self.conns[database_alias] = conn
 
-        #return
         return conn
 
 
@@ -126,7 +122,6 @@ class db_conn(object):
                 return False
 
             #get cursor
-            #todo: use "with" syntax?
             cursor = None
             if   type == 'mysql':
                 cursor = conn.cursor(pymysql.cursors.DictCursor)

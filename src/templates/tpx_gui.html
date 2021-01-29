@@ -1,0 +1,106 @@
+{% extends "rti_base.html" %}
+
+{% block content %}
+
+    <p></p>
+
+    <table id="result_table" class="rti_table">
+    <thead>
+    {% for i in range(0, db_columns | length() ) %}
+        <th>{{db_columns[i]}}</th>
+    {% endfor %}
+
+    {% for i in range(0, columns | length() ) %}
+        <th>{{columns[i]}}</th>
+    {% endfor %}
+
+    </thead>
+    <tbody >
+	<!-- if no data exists for specified query -->
+	{% if not results %}
+        <tr>
+        {% for i in range(0, db_columns | length() ) %}
+            <td> no result </td>
+        {% endfor %}
+        </tr>
+
+	<!-- print nothing except for table header -->
+	{% else %}
+	<!-- if results does exist -->
+	{% for result in results %}
+	<!-- if selected table is koatpx -->
+    {% if params.page == 'koatpx' %}
+
+			<!-- UT Date of Observation -->
+			<td>{{result["utdate"]}}</td>
+			<!-- Instrument -->
+			<td>{{result["instr"]}}</td>
+			<!-- Principal Investigator -->
+			{% autoescape false %}
+			<td>{{result["pi"]|replace("/","<br/>")}}</td>
+			{% endautoescape %}
+			<!-- Number of Files -->
+			<td>{{result["files"]}}</td>
+			<!-- Number of Files Archived -->
+			<td>{{result["files_arch"]}}</td>
+			<!-- Number of Science Files -->
+			<td>{{result["sci_files"]}}</td>
+			<!-- File Size -->
+			<td>{{result["size"]}}</td>
+			<!-- Summit Data Number -->
+			<td>{{result["sdata"]}}</td>
+			<!-- On Disk Status and Time -->
+			<td nowrap class={{result["ondisk_stat"]}}>{{result["ondisk_stat"]}}<br>{{result["ondisk_time"]}}</td>
+			<!-- Archive Status and Time -->
+			<td nowrap class={{result["arch_stat"]}}>{{result["arch_stat"]}}<br>{{result["arch_time"]}}</td>
+			<!-- Metadata Status and Time -->
+			<td nowrap class={{result["metadata_stat"]}}>{{result["metadata_stat"]}}<br>{{result["metadata_time"]}}</td>
+			<!-- DVD Sent to NExScI Status and Time -->
+			<td nowrap class={{result["dvdsent_stat"]}}>{{result["dvdsent_stat"]}}<br>{{result["dvdsent_time"]}}</td>
+			<!-- TPX Status and Time -->
+			<td nowrap class={{result["tpx_stat"]}}>{{result["tpx_stat"]}}<br>{{result["tpx_time"]}}</td>
+			<!-- Level 1 Done -->
+			{% autoescape false %}
+			<td nowrap {% if result["lev1_done"] %} class="done" {% endif %}>{{result["lev1_done"]}}</td>
+			{% endautoescape %}
+			<!-- DRP Sent -->
+			{% autoescape false %}
+			<td nowrap {% if result["drpSent"] %} class="done" {% endif %}>{{result["drpSent"]}}</td>
+			{% endautoescape %}
+			<!-- Level 1 Completed Status and Time -->
+			<td nowrap class={{result["lev1_stat"]}}>{{result["lev1_stat"]}}<br>{{result["lev1_time"]}}</td>
+		</tr>
+	<!-- if selected table is koadrp -->
+	{% else %}
+		<tr>
+			<!-- UT Date of Observation -->
+			<td>{{result["utdate"]}}</td>
+			<!-- Instrument -->
+			<td>{{result["instr"]}}</td>
+			<!-- Phase -->
+			<td>{{result["phase"]}}</td>
+			<!-- Files -->
+			<td>{{result["files"]}}</td>
+			<!-- Reduced -->
+			<td>{{result["reduced"]}}</td>
+			<!-- Start Time -->
+			<td>{{result["startTime"]}}</td>
+			<!-- Start Reduce -->
+			<td>{{result["startReduce"]}}</td>
+			<!-- End Time -->
+			<td>{{result["endTime"]}}</td>
+			<!-- Time Lost -->
+			<td>{{result["timeLost"]}}</td>
+			<!-- Notes -->
+			{% autoescape false %}
+			<td {% if result["notes"] == "Failed" %} class="failed" {% elif "No" in result["notes"] or "no" in result["notes"] %} class="failed" {% elif result["notes"] != '' %} class="done" {% endif %}>{{result["notes"]}}</td>
+			{% endautoescape %}
+		</tr>
+	{% endif %}
+	{% endfor %}
+	{% endif %}
+    </tbody>
+	</table>
+
+{% endblock %}
+

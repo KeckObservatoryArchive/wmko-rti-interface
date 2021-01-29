@@ -1,7 +1,7 @@
 import calendar
 import sys
 import time
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from os import path, stat
@@ -11,6 +11,7 @@ from koa_rti_db import DatabaseInteraction
 from koa_rti_helpers import get_api_help_string, InstrumentReport
 from koa_rti_helpers import year_range, replace_datetime
 from koa_rti_plots import TimeBarPlot, OverlayTimePlot
+from koa_tpx_gui import tpx_gui
 
 import json
 import argparse
@@ -31,9 +32,11 @@ def get_resource_as_string(name, charset='utf-8'):
 app = Flask(__name__, template_folder=TEMPLATE_PATH)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
+
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
     return ingest_api_get()
+
 
 @app.route("/koarti_api", methods=['GET'])
 def tpx_rti_api():
@@ -73,7 +76,11 @@ def tpx_rti_page():
     elif var_get.page == 'stats':
         page_name = "rti_metrics.html"
         results = rti_api.getPlots()
+    elif var_get.page in ['koatpx', 'koadrp']:
+        page_name = "tpx_gui.html"
+        results, db_columns = tpx_gui(var_get.page, API_INSTANCE)
     else:
+        # results are loaded by the long-polling routine
         page_name = "rti_table.html"
         results = None
 
@@ -187,7 +194,6 @@ def api_results():
 
 
 def return_results(success=1, results=None, msg=None):
-
     """
     Return the results.  If json,  the results are a dictionary of
     success,  data (the database query results), and any error messages.

@@ -178,6 +178,56 @@ class KoaRtiApi:
 
         return results
 
+    def searchKOATPX(self):
+        """
+        Find all results for the TPX GUI.
+
+        :return: (list) row/columns to be used for the table.
+        """
+        query = "select koatpx.*,koadrp.endTime as lev1_done from koatpx left "
+        query += "join koadrp on koatpx.instr=koadrp.instr and koatpx.utdate="
+        query += "koadrp.utdate where "
+        if self.params.inst:
+            query += "koatpx.instr like %s and "
+            params = (self.params.inst,)
+        else:
+            params = ()
+        if self.params.utd2:
+            query += "koatpx.utdate >= %s and koatpx.utdate <= %s"
+            params += (self.utd, self.params.utd2)
+        else:
+            query += "koatpx.utdate like %s"
+            params += (self.utd,)
+        query += " order by utdate desc, instr asc"
+
+        results = self.db_functions.make_query(query, params, "koaserver")
+
+        return results
+
+    def searchKOADRP(self):
+        """
+        Find all results for the TPX DRP GUI.
+
+        :return: (list) row/columns to be used for the table.
+        """
+        query = "select * from koadrp where "
+        if self.params.inst:
+            query += "instr like %s and "
+            params = (self.params.inst, )
+        else:
+            params = ()
+
+        if self.params.utd2:
+            query += "utdate >= %s and utdate <= %s"
+            params += (self.utd, self.params.utd2, )
+        else:
+            query += "utdate like %s order by utdate desc, instr asc"
+            params += (self.utd, )
+
+        results = self.db_functions.make_query(query, params, "koaserver")
+
+        return results
+
     def searchGENERAL(self):
         query, params = self._generic_query(columns=self.var_get.columns,
                                             key=self.var_get.key,
@@ -202,15 +252,17 @@ class KoaRtiApi:
         query += f"WHERE {self.var_get.key}=%s;"
         params = (self.var_get.update_val, self.search_val)
 
-        try:
-            self.db_functions.make_query(query, params)
-        except Exception as err:
-            return str(err)
+        # try:
+        #     self.db_functions.make_query(query, params)
+        # except Exception as err:
+        #     return str(err)
+        #
+        # self.utd = None
+        # results = self.searchGENERAL()
+        #
+        # return results
 
-        self.utd = None
-        results = self.searchGENERAL()
-
-        return results
+        return query + str(params)
 
     def updateMARKDELETED(self):
         # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
