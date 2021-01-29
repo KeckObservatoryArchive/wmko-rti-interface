@@ -40,6 +40,7 @@ VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
 #INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
 INGEST_TYPES = {'lev0'}
 REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status', 'metrics'}
+METRICS_PARAMS  = ['ingest_start_time', 'ingest_copy_start_time', 'ingest_copy_end_time', 'ingest_end_time']
 
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
@@ -103,6 +104,9 @@ def parse_metrics(metrics):
         metrics = json.loads(metrics)
     except:
         assert metrics == None, 'Cannot parse metrics value'
+    # Verify contents of metrics
+    for key in METRICS_PARAMS:
+        assert key in metrics.keys(), f'Missing metrics data - {key}'
     return metrics
 
 def parse_utdate(utdate, format='%Y-%m-%d'):
@@ -153,9 +157,12 @@ def update_ipac_response_time(parsedParams, conn, dbUser, defaultMsg=''):
     koaid = parsedParams['koaid']
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     print(parsedParams['status'])
-    updateQuery = f"update dep_status set ipac_response_time='{now}'"
-    updateQuery = f"{updateQuery}, status='{parsedParams['status']}'"
-    msg = defaultMsg if  parsedParams['status'] == 'COMPLETE' else parsedParams['message']
+    updateQuery = f"update dep_status set"
+    for key in METRICS_PARAMS:
+        updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
+    updateQuery = f"{updateQuery} ipac_response_time='{now}',"
+    updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
+    msg = defaultMsg if  parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
     updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
@@ -170,7 +177,7 @@ def update_ipac_response_time(parsedParams, conn, dbUser, defaultMsg=''):
 def update_lev_parameters(parsedParams, reingest, conn, dbUser='koa_test'):
     #  check if unique
     result, parsedParams = query_unique_row(parsedParams, conn, dbUser)
-    if isinstance(result, list) and len(result) != 1:
+    if len(result) != 1:
         return parsedParams
     result = result[0]
     #  verify that status is TRANSFERRED, ERROR or COMPLETE
@@ -202,6 +209,7 @@ def parse_query_param(key, value):
         "ingesttype": parse_ingesttype,
         "ingest_error": parse_message,
         "metrics": parse_metrics,
+        "dev": parse_message
         }
     key = ''.join(key.split()).lower()
     # Get the function from switcher dictionary
@@ -211,7 +219,7 @@ def parse_query_param(key, value):
 
 def validate_ingest(parsedParams):
 
-    if parsedParams.get('status') == 'ERROR' and not parsedParams.get('message', False):
+    if parsedParams.get('status') == 'ERROR' and not parsedParams.get('ingest_error', False):
         parsedParams['ingestErrors'].append('status==ERROR should include a message')
     if not len(parsedParams) > 0:
         parsedParams['apiStatus'] = 'ERROR'
@@ -256,8 +264,13 @@ def ingest_api_get():
     parsedParams = parse_params(reqDict)
     reingest = parsedParams.get('reingest', False)
     testonly = parsedParams.get('testonly', False)
+    # Change to test DB if dev=true
+    dev = parsedParams.get('dev', False)
+    if dev == 'true': dbname = 'koa_test'
+    else: dbname = 'koa'
+    print(f'Using DB {dbname}')
     if parsedParams['apiStatus'] != 'ERROR' and not testonly:
         #  create database object
         conn = db_conn('./config.live.ini')
-        parsedParams = update_lev_parameters(parsedParams, reingest, conn)
+        parsedParams = update_lev_parameters(parsedParams, reingest, conn, dbUser=dbname)
     return jsonify(parsedParams)
