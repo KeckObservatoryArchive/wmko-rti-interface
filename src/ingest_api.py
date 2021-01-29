@@ -20,6 +20,7 @@ def try_assert(method):
             result = (None, err)
         return result
     return tryer
+
 INST_SET_ABBR = {'DE', 'DF', 'EI', 'HI', 'KB', 'KF', 'LB', 'LR', 'MF', 'N2', 'NI', 'NR', 'NC', 'NS', 'OI', 'OS'}
 INST_SET = set('DEIMOS, ESI, HIRES, KCWI, LRIS, MOSFIRE, OSIRIS, NIRC2, NIRES, NIRSPEC'.split(', '))
 INST_MAPPING = { 
@@ -30,18 +31,16 @@ INST_MAPPING = {
                  'LRIS': {'LB', 'LR'},
                  'MOSFIRE': {'MF'},
                  'OSIRIS': {'OI', 'OS'},
-                 'NIRES': {'NR', 'NI', 'NS'},
-                 'NIRC2': {'N2', 'NC'},
+                 'NIRC2': {'N2'},
+                 'NIRES': {'NI', 'NR'},
+                 'NIRSPEC': {'NC', 'NS'},
                 }
 VALID_DB_STATUS_VALUES = {'TRANSFERRED', 'ERROR', 'COMPLETE'} 
-STATUS_SET = {'COMPLETE', 'DONE', 'ERROR'}
-VALID_BOOL = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
-# For now only allowing lev0
-#INGEST_TYPES = {'lev0', 'lev1', 'lev2', 'try', 'psfr'}
-INGEST_TYPES = {'lev0'}
+STATUS_SET      = {'COMPLETE', 'DONE', 'ERROR'}
+VALID_BOOL      = {'TRUE', '1', 'YES', 'FALSE', '0', 'NO'}
+INGEST_TYPES    = {'lev0'} # For nowo nly allowing lev0
 REQUIRED_PARAMS = {'inst', 'ingesttype', 'koaid', 'status', 'metrics'}
 METRICS_PARAMS  = ['ingest_start_time', 'ingest_copy_start_time', 'ingest_copy_end_time', 'ingest_end_time']
-
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
 remove_whitespace_and_make_lowercase = lambda s: ''.join(s.split()).lower()
@@ -49,7 +48,8 @@ is_blank_msg = lambda s: f'{s} is blank'
 not_in_set_msg = lambda s, st: f'{s} not found in set {st}'
 
 def get_inst_long_name(instAbbr):
-    return [key for (key, vals) in INST_MAPPING.items() if instAbbr in vals][0]  # get long name of instrument
+    '''Returns instrument name from abbreviation (e.g. HI -> HIRES).'''
+    return [key for (key, vals) in INST_MAPPING.items() if instAbbr in vals][0]
 
 def assert_is_blank(param):
     assert len(param) > 0, is_blank_msg(param)
