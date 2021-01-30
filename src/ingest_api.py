@@ -109,6 +109,10 @@ def parse_metrics(metrics):
     # Verify contents of metrics
     for key in METRICS_PARAMS:
         assert key in metrics.keys(), f'Missing metrics data - {key}'
+        try:
+            t = dt.strptime(metrics[key], '%Y-%m-%d %H:%M:%S')
+        except:
+            raise DateParseException(f'Incorrect format for metrics key {key}')
     return metrics
 
 def parse_utdate(utdate, format='%Y-%m-%d'):
