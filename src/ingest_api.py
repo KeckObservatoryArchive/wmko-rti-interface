@@ -243,12 +243,13 @@ def validate_ingest(parsedParams):
     return parsedParams
 
 def parse_params(reqDict):
+    '''Parse and verify input paramaters.'''
     parsedParams = dict()
     parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     parsedParams['ingestErrors'] = []
     for key, value in reqDict.items():
         if len(key) == '':
-            iparsedParams['ingestErrors'].append('key should not be blank')
+            parsedParams['ingestErrors'].append('key should not be blank')
             continue
         if value:
             parsedParams[key], err = parse_query_param(key, value)
@@ -258,7 +259,8 @@ def parse_params(reqDict):
     parsedParams = validate_ingest(parsedParams)
     return parsedParams
 
-def ingest_api_get():
+def ingest_api_get(log=None):
+    '''API entry point from koa_rti_main.ingest_api route.'''
     print(f'type: {type(request.args)} keys {request.args.keys()}')
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
