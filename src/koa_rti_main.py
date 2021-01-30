@@ -35,7 +35,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
-    return ingest_api_get()
+    return ingest_api_get(log)
 
 
 @app.route("/koarti_api", methods=['GET'])
@@ -349,10 +349,11 @@ if __name__ == '__main__':
     # else:
     #     logdir = args.logdir
 
-    logdir = APP_PATH + '/log/'
+#    logdir = APP_PATH + '/log/'
+    logdir = '/koadata/'
 
-    create_logger('rti_api', logdir)
-    log = logging.getLogger('KOA_RTI_API')
+    create_logger('wmko_rti_api', logdir)
+    log = logging.getLogger('wmko_rti_api')
 
     # run flask server
     log.info(f"Starting RTI API:\nPORT = {port}\nMODE = {mode}")
