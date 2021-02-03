@@ -29,10 +29,11 @@ class KoaRtiApi:
         # change these to change the order of the results
         self.query_keys = ['STATUS', 'KOAID', 'UTDATETIME', 'Filename',
                            'INSTRUMENT', 'KOAIMTYP', 'SEMID', 'Stage_Dir',
-                           'Archive_Dir', 'Status_Code', 'Creation_Time',
-                           'Dep_Start_Time', 'Dep_End_Time', 'IPAC_Notify_Time',
-                           'IPAC_Response_Time', 'Stage_time', 'Filesize_MB',
-                           'Archsize_MB', 'Last_Mod', 'OFNAME', 'ID']
+                           'Process_Dir', 'Archive_Dir', 'Status_Code',
+                           'Creation_Time', 'Dep_Start_Time', 'Dep_End_Time',
+                           'IPAC_Notify_Time', 'IPAC_Response_Time',
+                           'Stage_time', 'Filesize_MB', 'Archsize_MB',
+                           'Last_Mod', 'OFNAME', 'ID']
 
         self.monthly_header = ['Date', 'Total_Files']
         self.monthly_header += self.status_opts + ['Instruments']
@@ -44,11 +45,11 @@ class KoaRtiApi:
         self.search_val = var_get.val
         self.update_val = var_get.update_val
         self.var_get = var_get
-        self.table_view = None
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
 
+        self.table_view = None
         self.change_table_name(var_get.view)
 
         if var_get.yr and var_get.month:
@@ -426,6 +427,7 @@ class KoaRtiApi:
 
         :param table_view: (str) 'default' or 'full'
         """
+        print("TABLE", table_view)
         self.table_view = table_view
 
     def getDbColumns(self):
