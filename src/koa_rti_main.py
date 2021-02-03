@@ -35,7 +35,8 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
-    return ingest_api_get()
+    log.info('ingest_api: starting api call')
+    return ingest_api_get(log)
 
 
 @app.route("/koarti_api", methods=['GET'])
@@ -301,7 +302,7 @@ def parse_args():
     :return: <obj> commandline arguments
     """
     parser = argparse.ArgumentParser(description="Start KOA RTI DB API.")
-    parser.add_argument("--logdir", type=str, default='/log',
+    parser.add_argument("--logdir", type=str, default='/koadata',
                         help="Define the directory for the log.")
     parser.add_argument("--port", type=int, default=0, help="Server Port.")
     parser.add_argument("--mode", type=str, choices=['dev', 'release'],
@@ -351,8 +352,9 @@ if __name__ == '__main__':
 
     logdir = APP_PATH + '/log/'
 
-    create_logger('rti_api', logdir)
-    log = logging.getLogger('KOA_RTI_API')
+
+    create_logger('wmko_rti_api', f'{args.logdir}/')
+    log = logging.getLogger('wmko_rti_api')
 
     # run flask server
     log.info(f"Starting RTI API:\nPORT = {port}\nMODE = {mode}")

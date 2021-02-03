@@ -179,7 +179,7 @@ class ingestTestBed(unittest.TestCase):
 
     def generate_random_query_param_dict(self):
         reqDict = dict()
-        koaid = self.generate_koaid(nDateSamp=1)[0]
+        koaid = choice(self.generate_koaid(nDateSamp=1))
         instAbbr = koaid.split('.')[0]
         try:
             instLongName = get_inst_long_name(instAbbr)
@@ -190,6 +190,7 @@ class ingestTestBed(unittest.TestCase):
         reqDict['ingesttype'] = self.sample_from_set(INGEST_TYPES)
         reqDict['koaid'] = koaid
         reqDict['status'] = self.sample_from_set(STATUS_SET)
+        reqDict['metrics'] = {'api_start_time': 0, 'ingestion_start_time': 0, 'ingestion_end_time': 0, 'wmko_notified_time': 0}
         if reqDict['status'] == 'ERROR':
             reqDict['message'] = 'status is ERROR'
         return reqDict
@@ -252,7 +253,6 @@ class ingestTestBed(unittest.TestCase):
                 reqDict[key] = value
 
             nInvalidParams = len(reqDict) - lValidKeys
-            
             parsedParams = parse_params(reqDict)
             self.assertEqual(parsedParams['apiStatus'], 'ERROR', 'error should be reported')
             self.assertEqual(len(parsedParams['ingestErrors']), nInvalidParams, f'number of errors should be {nInvalidParams}')
