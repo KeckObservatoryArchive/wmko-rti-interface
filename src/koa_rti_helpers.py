@@ -114,17 +114,10 @@ def replace_datetime(results):
     if not results or type(results) != list:
         return results
 
-    datetime_keys = ["utdatetime","creation_time","dep_start_time",
-                     "dep_end_time", "xfr_start_time", "xfr_end_time",
-                     "ipac_notify_time", "ipac_response_time", "stage_time",
-                     "last_mod", "ingest_start_time", "ingest_end_time"]
-
-    for key_name in datetime_keys:
-        for result in results:
-            if key_name not in result:
-                continue
-            date_obj = result[key_name]
-            if date_obj:
+    for result in results:
+        for key_name in result:
+            if isinstance(result[key_name], datetime):
+                date_obj = result[key_name]
                 result[key_name] = date_obj.strftime("%Y-%m-%d %H:%M:%S")
 
     return results

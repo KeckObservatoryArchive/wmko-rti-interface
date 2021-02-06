@@ -67,6 +67,7 @@ function write_table(data) {
 
 }
 
+
 function add_row($table, results, column, i, j) {
     let col = column[j].toLowerCase();
     let val = results[i][col];

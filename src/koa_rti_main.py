@@ -140,7 +140,10 @@ def data_update():
                     'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
     results, columns = get_results()
-    results = json.dumps(results)
+    try:
+        results = json.dumps(results)
+    except:
+        print("ERROR! cannot json.dump data in data_update")
 
     return {'results': results,
             'columns': columns,
@@ -154,7 +157,10 @@ def load_data():
     on initial load.
     """
     results, columns = get_results()
-    results = json.dumps(results)
+    try:
+        results = json.dumps(results)
+    except:
+        print("ERROR! cannot json.dump data in load_data")
 
     return {'results': results,
             'columns': columns,
@@ -338,19 +344,14 @@ def create_logger(name, logdir):
 if __name__ == '__main__':
 
     args = parse_args()
-
     port = args.port
     mode = args.mode
     debug = False if mode == 'release' else True
     host = '0.0.0.0'
     assert port != 0, "ERROR: Must provide port"
 
-    # if debug and args.logdir == 'log':
-    #     logdir = '/tmp'
-    # else:
-    #     logdir = args.logdir
+    logdir = APP_PATH + '/log/'
 
-#    logdir = APP_PATH + '/log/'
 
     create_logger('wmko_rti_api', f'{args.logdir}/')
     log = logging.getLogger('wmko_rti_api')
