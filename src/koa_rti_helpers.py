@@ -117,7 +117,7 @@ def replace_datetime(results):
     datetime_keys = ["utdatetime","creation_time","dep_start_time",
                      "dep_end_time", "xfr_start_time", "xfr_end_time",
                      "ipac_notify_time", "ipac_response_time", "stage_time",
-                     "last_mod"]
+                     "last_mod", "ingest_start_time", "ingest_end_time"]
 
     for key_name in datetime_keys:
         for result in results:
