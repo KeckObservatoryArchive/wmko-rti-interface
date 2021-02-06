@@ -473,10 +473,17 @@ class KoaRtiApi:
 
         return plot_obj.get_plot()
 
-    def statTotalTime(self):
-        stats = self._calc_time_length('creation_time', 'ipac_notify_time')
+    def statIngestTime(self):
+        stats = self._calc_time_length('ingest_start_time', 'ingest_end_time')
 
-        plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Notify')
+        plot_obj = OverlayTimePlot(stats, 'Ingest Time')
+
+        return plot_obj.get_plot()
+
+    def statTotalTime(self):
+        stats = self._calc_time_length('creation_time', 'ipac_response_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
 
         return plot_obj.get_plot()
 
@@ -485,12 +492,14 @@ class KoaRtiApi:
         if not self.params.plot or self.params.plot == 0:
             results = {'plots': [self.statTotalTime()]}
         elif self.params.plot == 1:
-            results = {'plots': [self.statTransferTime()]}
-        elif self.params.plot == 2:
             results = {'plots': [self.statDepTime()]}
+        elif self.params.plot == 2:
+            results = {'plots': [self.statTransferTime()]}
+        elif self.params.plot == 3:
+            results = {'plots': [self.statIngestTime()]}
         else:
-            results = {'plots': [self.statTotalTime(), self.statTransferTime(),
-                                 self.statDepTime()]}
+            results = {'plots': [self.statTotalTime(), self.statDepTime(),
+                                 self.statTransferTime(), self.statIngestTime()]}
 
         return results
 
