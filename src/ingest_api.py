@@ -171,8 +171,8 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
-    msg = defaultMsg if  parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
-    if msg != None: updateQuery = f"{updateQuery}, status_code='{msg}'"
+    msg = defaultMsg if parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
+    if msg != None: updateQuery = f"{updateQuery}, status_code_ipac='{msg}'"
     updateQuery = f"{updateQuery} where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
