@@ -295,4 +295,6 @@ def ingest_api_get(log=None):
         conn = db_conn('./config.live.ini')
         # send request
         parsedParams = update_lev0_parameters(parsedParams, reingest, conn, dbUser=dbname)
+        if log != None:
+            log.info(f'ingest_api_get: returned parameters - {parsedParams}')
     return jsonify(parsedParams)
