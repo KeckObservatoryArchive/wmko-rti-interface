@@ -145,6 +145,9 @@ def data_update():
     except:
         print("ERROR! cannot json.dump data in data_update")
 
+    print("results", results)
+
+
     return {'results': results,
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}

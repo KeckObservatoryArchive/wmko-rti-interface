@@ -253,17 +253,17 @@ class KoaRtiApi:
         query += f"WHERE {self.var_get.key}=%s;"
         params = (self.var_get.update_val, self.search_val)
 
-        # try:
-        #     self.db_functions.make_query(query, params)
-        # except Exception as err:
-        #     return str(err)
-        #
-        # self.utd = None
-        # results = self.searchGENERAL()
-        #
-        # return results
+        try:
+            self.db_functions.make_query(query, params)
+        except Exception as err:
+            return str(err)
 
-        return query + str(params)
+        self.utd = None
+        results = self.searchGENERAL()
+
+        return results
+
+        # return query + str(params)
 
     def updateMARKDELETED(self):
         # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
@@ -427,7 +427,6 @@ class KoaRtiApi:
 
         :param table_view: (str) 'default' or 'full'
         """
-        print("TABLE", table_view)
         self.table_view = table_view
 
     def getDbColumns(self):
@@ -557,9 +556,6 @@ class KoaRtiApi:
             params = ()
             add_str = " WHERE "
 
-        if add:
-            query += f" {add} "
-
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
                 query += f" {add_str} utdatetime between %s and %s"
@@ -569,6 +565,9 @@ class KoaRtiApi:
                 query += f" {add_str} utdatetime LIKE %s"
                 params += ("%" + self.utd + "%", )
                 add_str = " AND "
+
+        if add:
+            query += f" {add} "
 
         query, params = self._add_general_query(query, params, add_str)
 
