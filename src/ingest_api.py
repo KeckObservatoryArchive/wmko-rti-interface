@@ -161,7 +161,7 @@ def query_unique_row(parsedParams, conn, dbUser):
         parsedParams['ingestErrors'].append('koaid is missing or should be unique')
     return result, parsedParams
 
-def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=''):
+def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
     '''Update the database for ingesttype=lev0'''
 
     koaid = parsedParams['koaid']
@@ -171,8 +171,9 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=''):
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
-    msg = defaultMsg if  parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
-    updateQuery = f"{updateQuery}, status_code='{msg}' where koaid='{koaid}'"
+    msg = defaultMsg if parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
+    if msg != None: updateQuery = f"{updateQuery}, status_code_ipac='{msg}'"
+    updateQuery = f"{updateQuery} where koaid='{koaid}'"
     print('query'.center(50, '='))
     print(updateQuery)
     result = conn.query(dbUser, updateQuery)
@@ -294,4 +295,6 @@ def ingest_api_get(log=None):
         conn = db_conn('./config.live.ini')
         # send request
         parsedParams = update_lev0_parameters(parsedParams, reingest, conn, dbUser=dbname)
+        if log != None:
+            log.info(f'ingest_api_get: returned parameters - {parsedParams}')
     return jsonify(parsedParams)
