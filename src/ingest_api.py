@@ -108,6 +108,7 @@ def parse_metrics(metrics):
         assert metrics == None, 'Cannot parse metrics value'
     # Verify contents of metrics
     for key in METRICS_PARAMS:
+        if 'copy' in key and metrics[key] == '': continue
         assert key in metrics.keys(), f'Missing metrics data - {key}'
         try:
             t = dt.strptime(metrics[key], '%Y-%m-%d %H:%M:%S')
@@ -168,6 +169,7 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update dep_status set"
     for key in METRICS_PARAMS:
+        if parsedParams['metrics'][key] == '': continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
