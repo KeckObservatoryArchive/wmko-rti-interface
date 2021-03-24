@@ -4,7 +4,8 @@ import time
 from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
-from os import path, stat
+import os
+from pathlib import Path
 from ingest_api import *
 from koa_rti_api import KoaRtiApi
 from koa_rti_db import DatabaseInteraction
@@ -18,8 +19,8 @@ import argparse
 import logging
 
 
-APP_PATH = path.abspath(path.dirname(__file__))
-TEMPLATE_PATH = path.join(APP_PATH, "templates/")
+APP_PATH = os.path.abspath(os.path.dirname(__file__))
+TEMPLATE_PATH = os.path.join(APP_PATH, "templates/")
 API_INSTANCE = None
 
 
@@ -36,7 +37,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
     log.info('ingest_api: starting api call')
-    return ingest_api_get(log)
+    return ingest_api_get()
 
 
 @app.route("/koarti_api", methods=['GET'])
@@ -143,10 +144,9 @@ def data_update():
     try:
         results = json.dumps(results)
     except:
-        print("ERROR! cannot json.dump data in data_update")
+        log.error("ERROR! cannot json.dump data in data_update")
 
-    print("results", results)
-
+    #print("results", results)
 
     return {'results': results,
             'columns': columns,
@@ -163,7 +163,7 @@ def load_data():
     try:
         results = json.dumps(results)
     except:
-        print("ERROR! cannot json.dump data in load_data")
+        log.error("ERROR! cannot json.dump data in load_data")
 
     return {'results': results,
             'columns': columns,
@@ -305,7 +305,7 @@ def parse_args():
     :return: <obj> commandline arguments
     """
     parser = argparse.ArgumentParser(description="Start KOA RTI DB API.")
-    parser.add_argument("--logdir", type=str, default='/koadata',
+    parser.add_argument("--logdir", type=str, default='/koadata/log',
                         help="Define the directory for the log.")
     parser.add_argument("--port", type=int, default=0, help="Server Port.")
     parser.add_argument("--mode", type=str, choices=['dev', 'release'],
@@ -316,19 +316,20 @@ def parse_args():
 
 
 def create_logger(name, logdir):
-    logfile = f'{logdir}/{name}.log'
+
     try:
         #Create logger object
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
 
+        #create directory if it does not exist
+        logfile = f'{logdir}/{name}.log'
+        Path(os.path.dirname(logfile)).mkdir(parents=True, exist_ok=True)
+
         #file handler (full debug logging)
         handler = logging.FileHandler(logfile)
         handler.setLevel(logging.DEBUG)
-        handler.suffix = "%Y%m%d"
-        logger.addHandler(handler)
-
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+        formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -353,10 +354,8 @@ if __name__ == '__main__':
     host = '0.0.0.0'
     assert port != 0, "ERROR: Must provide port"
 
-    logdir = APP_PATH + '/log/'
-
-
-    create_logger('wmko_rti_api', f'{args.logdir}/')
+    #create logger
+    create_logger('wmko_rti_api', args.logdir)
     log = logging.getLogger('wmko_rti_api')
 
     # run flask server
