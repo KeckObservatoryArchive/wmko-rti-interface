@@ -5,6 +5,10 @@ from db_conn import db_conn
 from functools import wraps
 import json
 
+import logging
+log = logging.getLogger('wmko_rti_api')
+
+
 class DateParseException(Exception):
     pass
 
@@ -108,6 +112,7 @@ def parse_metrics(metrics):
         assert metrics == None, 'Cannot parse metrics value'
     # Verify contents of metrics
     for key in METRICS_PARAMS:
+        if 'copy' in key and metrics[key] == '': continue
         assert key in metrics.keys(), f'Missing metrics data - {key}'
         try:
             t = dt.strptime(metrics[key], '%Y-%m-%d %H:%M:%S')
@@ -150,11 +155,7 @@ def query_unique_row(parsedParams, conn, dbUser):
     instrument = parsedParams['inst']
     #  check if unique
     query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
-    print('query'.center(50,'='))
-    print(query)
     result = conn.query(dbUser, query)
-    print('result'.center(50, '='))
-    print(result)
     #  This assert returns a null result
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
@@ -168,17 +169,14 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update dep_status set"
     for key in METRICS_PARAMS:
+        if parsedParams['metrics'][key] == '': continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
     msg = defaultMsg if parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
     if msg != None: updateQuery = f"{updateQuery}, status_code_ipac='{msg}'"
     updateQuery = f"{updateQuery} where koaid='{koaid}'"
-    print('query'.center(50, '='))
-    print(updateQuery)
     result = conn.query(dbUser, updateQuery)
-    print('result'.center(50, '='))
-    print(result)
     if result != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('error updating ipac_response_time')
@@ -275,26 +273,24 @@ def parse_params(reqDict):
     parsedParams = validate_ingest(parsedParams)
     return parsedParams
 
-def ingest_api_get(log=None):
+def ingest_api_get():
     '''API entry point from koa_rti_main.ingest_api route.'''
 
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
     reingest = parsedParams.get('reingest', False)
     testonly = parsedParams.get('testonly', False)
-    if log != None:
-        log.info(f'ingest_api_get: input parameters - {reqDict}')
-        log.info(f'ingest_api_get: parsed parameters - {parsedParams}')
+    log.info(f'ingest_api_get: input parameters - {reqDict}')
+    log.info(f'ingest_api_get: parsed parameters - {parsedParams}')
     if parsedParams['apiStatus'] != 'ERROR' and not testonly:
         # Change to test DB if dev=true
         dev = parsedParams.get('dev', False)
         if dev == 'true': dbname = 'koa_test'
         else: dbname = 'koa'
-        if log != None: log.info(f'ingest_api_get: using database {dbname}')
+        log.info(f'ingest_api_get: using database {dbname}')
         #  create database object
         conn = db_conn('./config.live.ini')
         # send request
         parsedParams = update_lev0_parameters(parsedParams, reingest, conn, dbUser=dbname)
-        if log != None:
-            log.info(f'ingest_api_get: returned parameters - {parsedParams}')
+        log.info(f'ingest_api_get: returned parameters - {parsedParams}')
     return jsonify(parsedParams)
