@@ -197,7 +197,6 @@ def api_results():
     elif var_get.update:
         cmd = 'update' + var_get.update.upper()
     elif var_get.pykoa:
-        print("pykoa-ing", var_get.pykoa.upper())
         cmd = 'pykoa' + var_get.pykoa.upper()
         if not var_get.progid:
             return return_results(success=0, msg="use: progid=####")
