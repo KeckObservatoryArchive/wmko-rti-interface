@@ -3,7 +3,7 @@ import time
 from collections import namedtuple
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
-from flask_cors import CORS
+# from flask_cors import CORS
 
 import os
 from pathlib import Path
@@ -37,7 +37,7 @@ cors = CORS(app, resources = {
         "origins": "*"
     }
 })
-# app.config['CORS_HEADERS'] = 'Content-Type'
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
