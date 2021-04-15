@@ -123,6 +123,22 @@ def replace_datetime(results):
     return results
 
 
+# def clear_file(file_location):
+#     """
+#     Check the existence of the file, ie stage_file:
+#         /s/sdata125/hires6/2020nov23/hires0003.fits
+#
+#     :param file_location: <str> path or path+filename for the file
+#     :param filename: <str> filename to add to path
+#
+#     :return: <bool> does the file exist?
+#     """
+#     if not file_location:
+#         return False
+#
+#     if path.exists(file_location):
+#         remove(file_location)
+
 def get_api_help_string():
     search_list = []
     update_list = []
