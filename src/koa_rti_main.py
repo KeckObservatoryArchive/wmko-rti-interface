@@ -3,7 +3,7 @@ import time
 from collections import namedtuple
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
-# from flask_cors import CORS
+from flask_cors import CORS
 
 import os
 from pathlib import Path
@@ -31,12 +31,12 @@ def get_resource_as_string(name, charset='utf-8'):
 
 app = Flask(__name__, template_folder=TEMPLATE_PATH)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
-# CORS(app)
-# cors = CORS(app, resources = {
-#     r"/*": {
-#         "origins": "*"
-#     }
-# })
+CORS(app)
+cors = CORS(app, resources = {
+    r"/*": {
+        "origins": "*"
+    }
+})
 # app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/ingest_api", methods=["GET"])
