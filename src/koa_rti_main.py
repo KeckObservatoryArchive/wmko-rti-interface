@@ -3,6 +3,7 @@ import time
 from collections import namedtuple
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask_cors import CORS
 
 import os
 from pathlib import Path
