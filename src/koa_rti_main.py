@@ -1,16 +1,15 @@
 import calendar
-import sys
 import time
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, send_from_directory, jsonify
-from os import path, stat
+from flask_cors import CORS
+
+from os import path
 from ingest_api import *
 from koa_rti_api import KoaRtiApi
-from koa_rti_db import DatabaseInteraction
 from koa_rti_helpers import get_api_help_string, InstrumentReport
 from koa_rti_helpers import year_range, replace_datetime
-from koa_rti_plots import TimeBarPlot, OverlayTimePlot
 from koa_tpx_gui import tpx_gui
 
 import json
@@ -31,7 +30,13 @@ def get_resource_as_string(name, charset='utf-8'):
 
 app = Flask(__name__, template_folder=TEMPLATE_PATH)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
-
+CORS(app)
+cors = CORS(app, resources = {
+    r"/*": {
+        "origins": "*"
+    }
+})
+# app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
@@ -52,7 +57,10 @@ def tpx_rti_api():
         help_str += get_api_help_string()
         return help_str
 
-    return json.dumps(results)
+    json_dump = json.dumps(results)
+    # json_dump.headers.add("Access-Control-Allow-Origin", "*")
+
+    return json_dump
 
 
 @app.route("/koarti", methods=['GET'])
@@ -189,9 +197,17 @@ def api_results():
         cmd = 'search' + var_get.search.upper().replace('_', '')
     elif var_get.update:
         cmd = 'update' + var_get.update.upper()
+    elif var_get.pykoa:
+        print("pykoa-ing", var_get.pykoa.upper())
+        cmd = 'pykoa' + var_get.pykoa.upper()
+        if not var_get.progid:
+            return return_results(success=0, msg="use: progid=####")
+        # if not var_get.obsid:
+        #     return return_results(success=0, msg="use: obsid=####")
 
     if cmd:
         try:
+            print(cmd)
             results = getattr(rti_api, cmd)()
         except AttributeError as err:
             return return_results(success=0, msg=err)
@@ -236,7 +252,7 @@ def get_results():
             try:
                 results = getattr(rti_api, cmd)()
             except ValueError as err:
-                return return_error(err, True, True)
+                return return_error(err, True)
             except AttributeError as err:
                 results = rti_api.searchDATE()
         else:
@@ -252,14 +268,11 @@ def get_results():
     return results, db_columns
 
 
-def return_error(err, return_json, web_out):
-    if return_json:
-        result = {'success': 0, 'data': {}, 'msg': str(err)}
-        if web_out:
-            return jsonify(result)
-        return str(result)
-    else:
-        return proposalAPI_usage(err=err)
+def return_error(err, web_out):
+    result = {'success': 0, 'data': {}, 'msg': str(err)}
+    if web_out:
+        return jsonify(result)
+    return str(result)
 
 
 def parse_request(default_utd=True):
@@ -268,9 +281,9 @@ def parse_request(default_utd=True):
 
     :return: (named tuple) day parameters
     """
-    args = ['utd', 'utd2', 'search', 'update', 'val', 'view', 'tel', 'inst',
-            'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev', 'plot',
-            'columns', 'key', 'add', 'update_val']
+    args = ['utd', 'utd2', 'search', 'update', 'pykoa', 'val', 'view', 'tel',
+            'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
+            'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
 
     vars = dict((name, request.args.get(name)) for name in args)
     for key, val in vars.items():

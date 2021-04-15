@@ -1,12 +1,9 @@
-
-import argparse
 import calendar
 import json
-import logging
-import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from os import stat
 
+from koa_rti_pykoa import PyKoaApi
 from koa_rti_db import DatabaseInteraction
 from koa_rti_plots import TimeBarPlot, OverlayTimePlot
 
@@ -18,8 +15,8 @@ class KoaRtiApi:
 
         self.query_opts = ['None', 'HEADER', 'Image_Type', 'KOAID',
                            'Last_Entry', 'STATUS', 'SEMID']
-        self.status_opts = ['TRANSFERRED', 'TRANSFERRING',  'PROCESSING',
-                            'ERROR', 'INVALID', 'WARN']
+        self.status_opts = ['COMPLETE', 'TRANSFERRED', 'TRANSFERRING',
+                            'PROCESSING', 'ERROR', 'INVALID', 'WARN']
         self.img_types = ['OBJECT', 'BIAS', 'ARCLAMP', 'FLATLAMP', 'FOCUS']
 
         self.keck1_inst = ['None', 'HIRES', 'LRIS', 'MOSFIRE', 'OSIRIS']
@@ -86,6 +83,19 @@ class KoaRtiApi:
             return True
         return False
 
+    # --- pyKoa section ---
+    def pykoaALL(self):
+        # koaid, filehand, progid, semid, imagetyp
+        pykoa_api = PyKoaApi()
+        print(f'{self.params.obsid}')
+        # results = pykoa_api.query_obsid(self.params.obsid)
+        results = pykoa_api.progid_results(self.params.progid)
+
+        print(f'{results}')
+
+        return results
+
+        # --- Begin search section ---
     def searchDATE(self):
         """
         Find all results for a date or date range.
