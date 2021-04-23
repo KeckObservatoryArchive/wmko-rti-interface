@@ -59,7 +59,6 @@ def tpx_rti_api():
         return help_str
 
     json_dump = json.dumps(results)
-    # json_dump.headers.add("Access-Control-Allow-Origin", "*")
 
     return json_dump
 
