@@ -164,8 +164,8 @@ class KoaRtiApi:
                            'LAST_MOD', 'STAGE_FILE']
         params = ()
         query = "SELECT headers.*, status, stage_file, instrument, koaimtyp, "
-        query += "semid FROM headers JOIN dep_status ON headers.koaid"
-        query += " = dep_status.koaid"
+        query += "semid FROM headers JOIN koa_status ON headers.koaid"
+        query += " = koa_status.koaid"
 
         query, params = self._add_general_query(query, params, "WHERE")
         results = self.db_functions.make_query(query, params)
@@ -259,8 +259,8 @@ class KoaRtiApi:
 
         :return:
         """
-        query = f"UPDATE dep_status SET {self.var_get.columns}=%s "
-        query += f"WHERE {self.var_get.key}=%s;"
+        query = f"UPDATE koa_status SET {self.var_get.columns}=%s "
+        query += f"WHERE {self.var_get.key}=%s AND level=0;"
         params = (self.var_get.update_val, self.search_val)
 
         try:
@@ -276,8 +276,8 @@ class KoaRtiApi:
         # return query + str(params)
 
     def updateMARKDELETED(self):
-        # update dep_status set ofname_deleted = True where koaid='HI.20201104.9999.91';
-        query = f"UPDATE dep_status SET ofname_deleted = True WHERE koaid=%s;"
+        query = f"UPDATE koa_status SET ofname_deleted = True WHERE koaid=%s"
+        query += f" AND level=0;"
         params = (self.params.val, )
 
         return query + str(params)
@@ -292,8 +292,8 @@ class KoaRtiApi:
 
         :return: (str) comma separated instruments
         """
-        query = f'SELECT DISTINCT instrument FROM dep_status '
-        query += f'WHERE utdatetime LIKE %s'
+        query = f'SELECT DISTINCT instrument FROM koa_status '
+        query += f'WHERE utdatetime LIKE %s AND level=0'
         params = ("%" + day + "%", )
 
         if self.params.inst:
@@ -545,7 +545,7 @@ class KoaRtiApi:
         return stats
 
     def _generic_query(self, columns=None, key=None, val=None,
-                       add=None, table='dep_status'):
+                       add=None, table='koa_status'):
         """
         Only uses UTD if added as an additional parameter.
 
@@ -600,7 +600,8 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        query = f'SELECT COUNT(*) FROM dep_status WHERE utdatetime LIKE %s'
+        query = f'SELECT COUNT(*) FROM koa_status WHERE utdatetime LIKE %s'
+        query += f' AND level=0;'
         params = ("%" + day + "%",)
         if self.params.inst:
             query += f' AND instrument LIKE %s'
@@ -669,9 +670,9 @@ class KoaRtiApi:
         :return: (bool) True if modified after request_time.
         """
         if self.params.dev == 1:
-            filepath = "/var/lib/mysql/koa_test/dep_status.ibd"
+            filepath = "/var/lib/mysql/koa_test/koa_status.ibd"
         else:
-            filepath = "/var/lib/mysql/koa/dep_status.ibd"
+            filepath = "/var/lib/mysql/koa/koa_status.ibd"
 
         try:
             if self.is_daily() and stat(filepath).st_mtime > request_time:
