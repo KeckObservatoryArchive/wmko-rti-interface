@@ -65,7 +65,6 @@ class DatabaseInteraction:
         else:
             result = self.db.fetchall()
 
-        result.headers.add("Access-Control-Allow-Origin", "*")
         self.close_db_connection(self.db_name)
 
         return result
