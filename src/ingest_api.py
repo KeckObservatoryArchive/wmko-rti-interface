@@ -154,7 +154,7 @@ def query_unique_row(parsedParams, conn, dbUser):
     koaid = parsedParams['koaid']
     instrument = parsedParams['inst']
     #  check if unique
-    query = f"select * from dep_status where instrument='{instrument}' and koaid='{koaid}'"
+    query = f"select * from koa_status where instrument='{instrument}' and level=0 and koaid='{koaid}'"
     result = conn.query(dbUser, query)
     #  This assert returns a null result
     if len(result) != 1:
@@ -167,7 +167,7 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
 
     koaid = parsedParams['koaid']
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    updateQuery = f"update dep_status set"
+    updateQuery = f"update koa_status set"
     for key in METRICS_PARAMS:
         if parsedParams['metrics'][key] == '': continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
@@ -175,7 +175,7 @@ def update_lev0_db_data(parsedParams, conn, dbUser, defaultMsg=None):
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
     msg = defaultMsg if parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
     if msg != None: updateQuery = f"{updateQuery}, status_code_ipac='{msg}'"
-    updateQuery = f"{updateQuery} where koaid='{koaid}'"
+    updateQuery = f"{updateQuery} where koaid='{koaid}' and level=0"
     result = conn.query(dbUser, updateQuery)
     if result != 1:
         parsedParams['apiStatus'] = 'ERROR'
