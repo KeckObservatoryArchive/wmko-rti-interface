@@ -20,6 +20,12 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         processDir = parsedParams['datadir']
         assert isdir(processDir), f"{processDir} does not exist"
 
+        # Verify lev0 entry exists
+        result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
+        if len(result) == 0:
+            parsedParams['apiStatus'] = 'ERROR'
+            return parsedParams
+
         # Verify entry not in DB already or reingest=true
         result, parsedParams = query_unique_row(parsedParams, conn, dbUser, level)
         if len(result) == 0 and reingest == 'TRUE':
@@ -47,6 +53,8 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
             if result != 1:
                 parsedParams['apiStatus'] = 'ERROR'
                 parsedParams['ingestErrors'].append('error adding to koa_status')
+            parsedParams['apiStatus'] = 'COMPLETE'
+            parsedParams['ingestErrors'] = []
         else:
             result = result[0]
             if result['status'] == 'COMPLETE' and reingest != 'TRUE':
