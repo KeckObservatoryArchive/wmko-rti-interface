@@ -1,5 +1,5 @@
 from datetime import datetime as dt
-from ingest_api_common import query_unique_row
+from ingest_api_common import *
 
 def update_lev0_parameters(parsedParams, reingest, config, conn, dbUser='koa_test'):
     '''For ingesttype=lev0, verify can continue, then update the database.'''
@@ -22,6 +22,6 @@ def update_lev0_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         parsedParams['ingestErrors'].append('ipac_response_time already exists')
         return parsedParams
 
-    _, parsedParams = update_db_data(parsedParams, conn, dbUser)
+    _, parsedParams = update_db_data(parsedParams, config, conn, dbUser)
 
     return parsedParams
