@@ -28,7 +28,7 @@ def query_unique_row(parsedParams, conn, dbUser, level=0):
     #  This assert returns a null result
     if len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
-        parsedParams['ingestErrors'].append('koaid is missing or should be unique')
+        parsedParams['ingestErrors'].append(f'lev{level} koaid is missing or should be unique')
     return result, parsedParams
 
 def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=None):
