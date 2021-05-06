@@ -139,6 +139,7 @@ def parse_query_param(key, value):
         "ingesttype": parse_ingesttype,
         "ingest_error": parse_message,
         "metrics": parse_metrics,
+        "start": parse_message,
         "dev": parse_message,
         "datadir": parse_message,
         }
