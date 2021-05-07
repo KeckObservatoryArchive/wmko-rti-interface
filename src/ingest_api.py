@@ -210,14 +210,15 @@ def ingest_api_get():
     }
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
-    reingest = parsedParams.get('reingest', False)
-    testonly = parsedParams.get('testonly', False)
+    reingest = parsedParams.get('reingest', 'False')
+    testonly = parsedParams.get('testonly', 'False')
     log.info(f'ingest_api_get: input parameters - {reqDict}')
     log.info(f'ingest_api_get: parsed parameters - {parsedParams}')
-    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
+#    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
+    if parsedParams['apiStatus'] != 'ERROR' and testonly.lower != 'true':
         # Change to test DB if dev=true
-        dev = parsedParams.get('dev', False)
-        if dev == 'true': dbname = 'koa_test'
+        dev = parsedParams.get('dev', 'False')
+        if dev.lower() == 'true': dbname = 'koa_test'
         else: dbname = 'koa'
         log.info(f'ingest_api_get: using database {dbname}')
         #  create database object
