@@ -18,7 +18,7 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
     if 'datadir' in parsedParams.keys():
         # Verify that datadir exists
         processDir = parsedParams['datadir']
-        assert isdir(processDir), f"{processDir} does not exist"
+#        assert isdir(processDir), f"{processDir} does not exist"
 
         # Verify lev0 entry exists
         result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
@@ -34,7 +34,7 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
             return parsedParams
         if len(result) == 1 and reingest == 'FALSE':
             parsedParams['apiStatus'] = 'ERROR'
-            parsedParams['ingestErrors'].append(f"{koaid} in database and reingest=false")
+            parsedParams['ingestErrors'].append(f"{koaid} already archived, use reingest=true to replace")
             return parsedParams
 
         # New entry
@@ -47,7 +47,7 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
                     f"service='DRP',"
                     f"koaid='{koaid}',"
                     f"status='QUEUED',"
-                    f"process_dir='{processDir}',"
+                    f"stage_file='{processDir}',"
                     f"creation_time='{now}'")
             result = conn.query(dbUser, query)
             if result != 1:
