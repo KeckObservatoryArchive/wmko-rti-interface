@@ -1,8 +1,8 @@
-import calendar
 import json
 from datetime import datetime
 from os import stat
 
+from koa_rti_helpers import grab_value, query_prefix, date_iter
 from koa_rti_pykoa import PyKoaApi
 from koa_rti_db import DatabaseInteraction
 from koa_rti_plots import TimeBarPlot, OverlayTimePlot
@@ -81,21 +81,18 @@ class KoaRtiApi:
         """
         if self.params.page == 'daily':
             return True
+
         return False
 
     # --- pyKoa section ---
     def pykoaALL(self):
         # koaid, filehand, progid, semid, imagetyp
         pykoa_api = PyKoaApi()
-        print(f'{self.params.obsid}')
-        # results = pykoa_api.query_obsid(self.params.obsid)
         results = pykoa_api.progid_results(self.params.progid)
-
-        print(f'{results}')
 
         return results
 
-        # --- Begin search section ---
+    # --- Begin search section ---
     def searchDATE(self):
         """
         Find all results for a date or date range.
@@ -171,15 +168,15 @@ class KoaRtiApi:
         results = self.db_functions.make_query(query, params)
 
         for i, result in enumerate(results):
-            result['last_mod'] = self._grab_value(result, 'last_mod')
+            result['last_mod'] = grab_value(result, 'last_mod')
             result['header_keyword'] = self.search_val
 
-            header = self._grab_value(result, 'header')
+            header = grab_value(result, 'header')
             if header:
                 head_dict = json.loads(header)
-                head_vals = self._grab_value(head_dict, self.search_val)
-                result['header_value'] = self._grab_value(head_vals, 'value')
-                result['header_comment'] = self._grab_value(head_vals, 'comment')
+                head_vals = grab_value(head_dict, self.search_val)
+                result['header_value'] = grab_value(head_vals, 'value')
+                result['header_comment'] = grab_value(head_vals, 'comment')
             else:
                 result['header_value'] = None
                 result['header_comment'] = None
@@ -273,11 +270,8 @@ class KoaRtiApi:
 
         return results
 
-        # return query + str(params)
-
     def updateMARKDELETED(self):
         query = f"UPDATE koa_status SET ofname_deleted = True WHERE koaid=%s"
-        query += f" AND level=0;"
         params = (self.params.val, )
 
         return query + str(params)
@@ -350,17 +344,113 @@ class KoaRtiApi:
             results = results[0]['COUNT(*)']
 
         return results
+    
 
-    def _date_iter(self, year, month):
-        """
-        iterate over the days in a month.
+    """  ------------  metrics API section    ------------  """
+    # | creation_time       | process_start_time  | process_end_time    | xfr_start_time
+    # | xfr_end_time        | ipac_notify_time    | ingest_start_time   | ingest_copy_start_time
+    # | ingest_copy_end_time | ingest_end_time     | ipac_response_time  | stage_time |
 
-        :param year: (str) YYYY format
-        :param month: (str) MM format
-        :return: (str) YYYY-MM-DD format,  one date at a time
+    def timePROCESS(self):
         """
-        for i in range(1, calendar.monthlen(year, month) + 1):
-            yield f'{year}-{month}-{i:0>2}'
+        Find the the time difference between creation and process end.
+
+        /koarti_api?time=PROCESS&month=6
+
+        :return: [{koaid, instrument, seconds}]
+        """
+        stats = self._get_time_diff('creation_time', 'process_end_time')
+
+        return stats
+
+    def timeTRANSFER(self):
+        """
+        Find the the time difference between transfer start and end.
+
+        :return: [{koaid, instrument, seconds}]
+        """
+        stats = self._get_time_diff('xfr_start_time', 'xfr_end_time')
+
+        return stats
+
+    def timeINGEST(self):
+        """
+        Find the the time difference between ingestion start and end.
+
+        :return: [{koaid, instrument, seconds}]
+        """
+        stats = self._get_time_diff('ingest_start_time', 'ingest_end_time')
+
+        return stats
+
+    def timeCOPYINGEST(self):
+        """
+        Find the the time difference between copyingestion start and end.
+
+        :return: [{koaid, instrument, seconds}]
+        """
+        stats = self._get_time_diff('ingest_copy_start_time', 'ingest_copy_end_time')
+
+        return stats
+
+    def timeTOTAL(self):
+        """
+        Find the the time difference between start and end.
+
+        :return: [{koaid, instrument, seconds}]
+        """
+        stats = self._get_time_diff('creation_time', 'ingest_end_time')
+
+        return stats
+    
+
+    """  ------------  metrics Plots section    ------------  """
+    
+    def statProcessTime(self):
+        stats = self._calc_time_length('creation_time', 'process_end_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Processing Time')
+
+        return plot_obj.get_plot()
+
+    def statTransferTime(self):
+        stats = self._calc_time_length('xfr_start_time', 'xfr_end_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Transfer Time - Transfer Start to End')
+
+        return plot_obj.get_plot()
+
+    def statIngestTime(self):
+        stats = self._calc_time_length('ingest_start_time', 'ingest_end_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Ingest Time')
+
+        return plot_obj.get_plot()
+
+    def statTotalTime(self):
+        stats = self._calc_time_length('creation_time', 'ingest_end_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
+
+        return plot_obj.get_plot()
+
+    def getPlots(self):
+        """ Determine the plots to return by the input plot type """
+        if not self.params.plot or self.params.plot == 0:
+            results = {'plots': [self.statTotalTime()]}
+        elif self.params.plot == 1:
+            results = {'plots': [self.statProcessTime()]}
+        elif self.params.plot == 2:
+            results = {'plots': [self.statTransferTime()]}
+        elif self.params.plot == 3:
+            results = {'plots': [self.statIngestTime()]}
+        else:
+            results = {'plots': [self.statTotalTime(), self.statProcessTime(),
+                                 self.statTransferTime(), self.statIngestTime()]}
+
+        return results
+
+    """  ------------  Helpers section    ------------  """
 
     def monthly_results(self):
         """
@@ -370,10 +460,7 @@ class KoaRtiApi:
         """
         results = []
         yr, mo = self.monthly_date.split('-')
-        for day in self._date_iter(int(yr), int(mo)):
-            if day > self.utd:
-                break
-
+        for day in date_iter(yr, mo):
             tally = self.monthlyTOTAL(day)
             insts = self.monthlyINST(day)
 
@@ -386,50 +473,6 @@ class KoaRtiApi:
             results += [day_result]
 
         return results
-
-    def parse_filename_dir(self, result):
-        fullpath = self._grab_value(result, 'ofname')
-        if not fullpath:
-            return '', ''
-
-        split_path = fullpath.rsplit('/',1)
-
-        if len(split_path) > 1:
-            return split_path[0], split_path[1]
-        else:
-            return split_path[0], ''
-
-    def parse_results(self, results):
-        """
-        Transform any columns that need to be parsed.  Currently it is
-        only the filename being split from OFNAME.
-
-        :param results: (list/dict) the query results.
-        :return: (list/dict) the parsed query results.
-        """
-        if not results:
-            return None
-        for i in range(0, len(results)):
-            res = results[i]
-            res['stage_dir'], res['filename'] = self.parse_filename_dir(res)
-            results[i] = res
-
-        return results
-
-    @staticmethod
-    def _grab_value(result_dict, key_name):
-        """
-        Use to avoid an error while accessing a key that does not exist.
-
-        :param result_dict: (dict) dictionary to check
-        :param key_name: (str) key name
-
-        :return: dictionary value
-        """
-        if key_name in result_dict:
-            return result_dict[key_name]
-
-        return None
 
     def change_table_name(self, table_view):
         """
@@ -468,51 +511,29 @@ class KoaRtiApi:
         """
         return [self.keck1_inst, self.keck2_inst]
 
-    """  ------------  metrics section    ------------  """
+    def _get_time_diff(self, start_key, end_key, table='koa_status'):
+        """
+        Find the time difference
 
-    def statDepTime(self):
-        stats = self._calc_time_length('dep_start_time', 'dep_end_time')
+        :param start_key: <str> The database field for the starting time.
+        :param end_key: <str> The database field for the ending time.
+        :param table: <str> The database table name.
+        :return: [{koaid, instrument, TIMEDIFF}]
+        """
+        tm_diff_str = f'TIMEDIFF({end_key}, {start_key})'
+        fields =f'koaid, instrument, {tm_diff_str}'
+        query, params = self._generic_query(key=fields, table=table)
+        results = self.db_functions.make_query(query, params)
 
-        plot_obj = OverlayTimePlot(stats, 'DEP Time')
+        cln_results = []
+        for result in results:
+            if not all(result.values()):
+                continue
+            cln_results.append({'koaid': result['koaid'],
+                                'instrument': result['instrument'],
+                                'seconds': result[tm_diff_str].total_seconds()})
 
-        return plot_obj.get_plot()
-
-    def statTransferTime(self):
-        stats = self._calc_time_length('dep_end_time', 'ipac_notify_time')
-
-        plot_obj = OverlayTimePlot(stats, 'Transfer Time - DEP End to IPAC Notify')
-
-        return plot_obj.get_plot()
-
-    def statIngestTime(self):
-        stats = self._calc_time_length('ingest_start_time', 'ingest_end_time')
-
-        plot_obj = OverlayTimePlot(stats, 'Ingest Time')
-
-        return plot_obj.get_plot()
-
-    def statTotalTime(self):
-        stats = self._calc_time_length('creation_time', 'ipac_response_time')
-
-        plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
-
-        return plot_obj.get_plot()
-
-    def getPlots(self):
-        """ Determine the plots to return by the input plot type """
-        if not self.params.plot or self.params.plot == 0:
-            results = {'plots': [self.statTotalTime()]}
-        elif self.params.plot == 1:
-            results = {'plots': [self.statDepTime()]}
-        elif self.params.plot == 2:
-            results = {'plots': [self.statTransferTime()]}
-        elif self.params.plot == 3:
-            results = {'plots': [self.statIngestTime()]}
-        else:
-            results = {'plots': [self.statTotalTime(), self.statDepTime(),
-                                 self.statTransferTime(), self.statIngestTime()]}
-
-        return results
+        return cln_results
 
     def _calc_time_length(self, start_key, end_key):
         """
@@ -520,27 +541,21 @@ class KoaRtiApi:
 
         :return: (dict/dict/sum)
         """
-        query, params = self._generic_query()
-        results = self.db_functions.make_query(query, params)
-
+        results = self._get_time_diff(start_key, end_key)
         stats = {}
 
         for result in results:
             inst = result['instrument']
-            end = result[end_key]
-            start = result[start_key]
+            tm = int(result['seconds'])
 
-            if end and start:
-                tm = int((end - start).total_seconds())
-
-                if inst in stats:
-                    if tm in stats[inst]:
-                        stats[inst][tm] += 1
-                    else:
-                        stats[inst][tm] = 1
+            if inst in stats:
+                if tm in stats[inst]:
+                    stats[inst][tm] += 1
                 else:
-                    stats[inst] = {}
                     stats[inst][tm] = 1
+            else:
+                stats[inst] = {}
+                stats[inst][tm] = 1
 
         return stats
 
@@ -554,26 +569,7 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        if columns and key and val:
-            query = f"SELECT {columns} FROM {table} WHERE {key} LIKE %s"
-            params = ("%" + val + "%",)
-            add_str = " AND "
-        elif columns:
-            query = f"SELECT {columns} FROM {table}"
-            params = ()
-            add_str = " WHERE "
-        elif key and val:
-            query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
-            params = ("%" + val + "%", )
-            add_str = " AND "
-        elif key:
-            query = f"SELECT {key} FROM {table}"
-            params = ()
-            add_str = " WHERE "
-        else:
-            query = f"SELECT * FROM {table}"
-            params = ()
-            add_str = " WHERE "
+        query, params, add_str = query_prefix(columns, key, val, table)
 
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
@@ -601,7 +597,7 @@ class KoaRtiApi:
         :return: (str, tuple) query string and escaped parameters for query
         """
         query = f'SELECT COUNT(*) FROM koa_status WHERE utdatetime LIKE %s'
-        query += f' AND level=0;'
+        query += f' AND level=0'
         params = ("%" + day + "%",)
         if self.params.inst:
             query += f' AND instrument LIKE %s'

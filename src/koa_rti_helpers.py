@@ -2,8 +2,9 @@ from datetime import datetime
 from calendar import monthrange
 import sys
 import json
+import calendar
 from os import path
-from koa_rti_api import KoaRtiApi
+# from koa_rti_api import KoaRtiApi
 
 
 sys.path.append('/kroot/rel/default/bin/')
@@ -123,45 +124,43 @@ def replace_datetime(results):
     return results
 
 
-# def clear_file(file_location):
-#     """
-#     Check the existence of the file, ie stage_file:
-#         /s/sdata125/hires6/2020nov23/hires0003.fits
-#
-#     :param file_location: <str> path or path+filename for the file
-#     :param filename: <str> filename to add to path
-#
-#     :return: <bool> does the file exist?
-#     """
-#     if not file_location:
-#         return False
-#
-#     if path.exists(file_location):
-#         remove(file_location)
-
-def get_api_help_string():
+def get_api_help_string(api_instance):
     search_list = []
     update_list = []
-    for attribute in KoaRtiApi.__dict__:
+    time_list = []
+
+    for attribute in dir(api_instance):
+
+        if '_' in attribute:
+            continue
+
         if 'search' in attribute:
             query_name = attribute.split('search')[1]
             search_list.append(query_name)
         elif 'update' in attribute:
             query_name = attribute.split('update')[1]
             update_list.append(query_name)
+        elif 'time' in attribute:
+            query_name = attribute.split('time')[1]
+            time_list.append(query_name)
 
     help_str = "<BR><BR>Options: <BR><UL>"
     help_str += f"<li>search={search_list}<BR>"
+    help_str += f"<li>time={time_list}<BR>"
     help_str += f"<li>update={update_list}<BR>"
+
+    help_str += f"<BR>"
     help_str += "<li>columns=column1,column2,...,  columns to return"
     help_str += "<li>key=key,  search key"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
-    help_str += "<li>add=string to add to end of query"
+    help_str += "<li>month=MM (integer month)"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"
     help_str += "<li>limit=###,  the number of results to limit the search"
     help_str += "<li>inst=inst-name,  the instrument to limit the search"
     help_str += "<li>tel=#,  the number (1,2) of the telescope to limit the search"
+    help_str += "<li>add=string to add to end of query"
+
     help_str += "<BR><BR>Example: <BR><UL>"
     help_str += "<li>/koarti_api?search=GENERAL&val=TRANSFERRED&"
     help_str += "columns=koaid,status,ofname,stage_file,archive_dir,ofname_deleted"
@@ -172,6 +171,93 @@ def get_api_help_string():
     help_str += "&update_val=True&key=koaid&val=HI.20201104.1120.04"
 
     return help_str
+
+
+def parse_results(results):
+    """
+    Transform any columns that need to be parsed.  Currently it is
+    only the filename being split from OFNAME.
+
+    :param results: (list/dict) the query results.
+    :return: (list/dict) the parsed query results.
+    """
+    if not results:
+        return None
+    for i in range(0, len(results)):
+        res = results[i]
+        res['stage_dir'], res['filename'] = parse_filename_dir(res)
+        results[i] = res
+
+    return results
+
+
+def parse_filename_dir(result):
+    fullpath = grab_value(result, 'ofname')
+    if not fullpath:
+        return '', ''
+
+    split_path = fullpath.rsplit('/',1)
+
+    if len(split_path) > 1:
+        return split_path[0], split_path[1]
+    else:
+        return split_path[0], ''
+
+
+def grab_value(result_dict, key_name):
+    """
+    Use to avoid an error while accessing a key that does not exist.
+
+    :param result_dict: (dict) dictionary to check
+    :param key_name: (str) key name
+
+    :return: dictionary value
+    """
+    if not result_dict:
+        return None
+
+    if key_name in result_dict:
+        return result_dict[key_name]
+
+    return None
+
+
+def query_prefix(columns=None, key=None, val=None, table='koa_status'):
+    if columns and key and val:
+        query = f"SELECT {columns} FROM {table} WHERE {key} LIKE %s"
+        params = ("%" + val + "%",)
+        add_str = " AND "
+    elif columns:
+        query = f"SELECT {columns} FROM {table}"
+        params = ()
+        add_str = " WHERE "
+    elif key and val:
+        query = f"SELECT * FROM {table} WHERE {key} LIKE %s"
+        params = ("%" + val + "%",)
+        add_str = " AND "
+    elif key:
+        query = f"SELECT {key} FROM {table}"
+        params = ()
+        add_str = " WHERE "
+    else:
+        query = f"SELECT * FROM {table}"
+        params = ()
+        add_str = " WHERE "
+
+    return query, params, add_str
+
+
+def date_iter(year, month):
+    """
+    iterate over the days in a month.
+
+    :param year: (str) YYYY format
+    :param month: (str) MM format
+    :return: (str) YYYY-MM-DD format,  one date at a time
+    """
+    ndays = calendar.monthrange(int(year), int(month.lstrip('0')))[1]
+    for i in range(1, ndays):
+        yield f'{year}-{month:0>2}-{i:0>2}'
 
 
 class InstrumentReport:

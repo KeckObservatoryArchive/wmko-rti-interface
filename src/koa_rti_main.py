@@ -10,7 +10,7 @@ from pathlib import Path
 from ingest_api import *
 from koa_rti_api import KoaRtiApi
 from koa_rti_helpers import get_api_help_string, InstrumentReport
-from koa_rti_helpers import year_range, replace_datetime
+from koa_rti_helpers import year_range, replace_datetime, parse_results
 from koa_tpx_gui import tpx_gui
 
 import json
@@ -55,7 +55,7 @@ def tpx_rti_api():
     results = api_results()
     if not results['data']:
         help_str = f"No Results for query parameters:<BR><BR> {var_get}<BR>"
-        help_str += get_api_help_string()
+        help_str += get_api_help_string(API_INSTANCE)
         return help_str
 
     json_dump = json.dumps(results)
@@ -153,8 +153,6 @@ def data_update():
     except:
         log.error("ERROR! cannot json.dump data in data_update")
 
-    #print("results", results)
-
     return {'results': results,
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
@@ -192,7 +190,9 @@ def api_results():
     results = None
     cmd = None
 
-    if var_get.search:
+    if var_get.time:
+        cmd = 'time' + var_get.time.upper().replace('_', '')
+    elif var_get.search:
         cmd = 'search' + var_get.search.upper().replace('_', '')
     elif var_get.update:
         cmd = 'update' + var_get.update.upper()
@@ -200,12 +200,9 @@ def api_results():
         cmd = 'pykoa' + var_get.pykoa.upper()
         if not var_get.progid:
             return return_results(success=0, msg="use: progid=####")
-        # if not var_get.obsid:
-        #     return return_results(success=0, msg="use: obsid=####")
 
     if cmd:
         try:
-            print(cmd)
             results = getattr(rti_api, cmd)()
         except AttributeError as err:
             return return_results(success=0, msg=err)
@@ -256,7 +253,7 @@ def get_results():
         else:
             results = rti_api.searchDATE()
 
-        results = rti_api.parse_results(results)
+        results = parse_results(results)
     else:
         results = rti_api.monthly_results()
 
@@ -279,8 +276,8 @@ def parse_request(default_utd=True):
 
     :return: (named tuple) day parameters
     """
-    args = ['utd', 'utd2', 'search', 'update', 'pykoa', 'val', 'view', 'tel',
-            'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
+    args = ['utd', 'utd2', 'search', 'update', 'time', 'pykoa', 'val', 'view',
+            'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
             'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
 
     vars = dict((name, request.args.get(name)) for name in args)
@@ -293,8 +290,16 @@ def parse_request(default_utd=True):
         if not vars[key] and key in ['tel', 'dev', 'view']:
             vars[key] = 0
 
-    if not vars['utd'] and default_utd:
-        vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
+    if not vars['utd'] and default_utd or vars['time']:
+        if vars['month']:
+            if not vars['yr']:
+                vars['yr'] = int(datetime.utcnow().strftime("%Y"))
+            first_last = calendar.monthrange(vars['yr'], vars['month'])
+            vars['utd'] = f"{vars['yr']}-{vars['month']:0>2}-01"
+            vars['utd2'] = f"{vars['yr']}-{vars['month']:0>2}-{first_last[1]}"
+
+        else:
+            vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
 
     if not vars['month']:
         vars['month'] = datetime.utcnow().strftime("%m")
