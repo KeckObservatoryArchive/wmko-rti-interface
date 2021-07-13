@@ -9,9 +9,9 @@ import yaml
 import logging
 log = logging.getLogger('wmko_rti_api')
 
-from ingest_api_common import *
-from ingest_api_lev0 import update_lev0_parameters
-from ingest_api_lev1 import update_lev1_parameters
+from ingest_api.ingest_api_common import *
+from ingest_api.ingest_api_lev0 import update_lev0_parameters
+from ingest_api.ingest_api_lev1 import update_lev1_parameters
 
 with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
 CONFIG = CONFIG['ingest_api']

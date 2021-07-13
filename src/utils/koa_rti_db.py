@@ -6,7 +6,7 @@ import db_conn
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from db_conn import db_conn
 
-CONFIG_FILE = "config.live.ini"
+CONFIG_FILE = "../config.live.ini"
 APP_PATH = path.abspath(path.dirname(__file__))
 
 
