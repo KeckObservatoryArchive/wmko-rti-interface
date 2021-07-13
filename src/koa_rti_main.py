@@ -58,9 +58,7 @@ def tpx_rti_api():
         help_str += get_api_help_string(API_INSTANCE)
         return help_str
 
-    json_dump = json.dumps(results)
-
-    return json_dump
+    return jsonify(results)
 
 
 @app.route("/koarti", methods=['GET'])

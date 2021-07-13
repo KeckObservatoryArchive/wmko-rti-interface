@@ -337,6 +337,7 @@ def get_results(API_INSTANCE):
 
     return results, db_columns
 
+
 def return_results(success=1, results=None, msg=None):
     """
     Return the results.  If json,  the results are a dictionary of
@@ -348,7 +349,13 @@ def return_results(success=1, results=None, msg=None):
     :param msg: <str> any message to return
     :return: <dict> the results as a dictionary response
     """
-    return {'success': success, 'data': results, 'msg': msg}
+    if success == 1:
+        api_status = 'COMPLETE'
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    return {'success': success, 'msg': msg, 'apiStatus': api_status,
+            'timestamp': now, 'data': results}
 
 
 def parse_request(default_utd=True):
