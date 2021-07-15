@@ -5,6 +5,8 @@ from db_conn import db_conn
 #from functools import wraps
 import json
 import yaml
+import os 
+import sys
 
 import logging
 log = logging.getLogger('wmko_rti_api')
@@ -13,7 +15,8 @@ from ingest_api.ingest_api_common import *
 from ingest_api.ingest_api_lev0 import update_lev0_parameters
 from ingest_api.ingest_api_lev1 import update_lev1_parameters
 
-with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
+#Load config in global space (NOTE: Needed sys path b/c cwd is not correct unless running via run.csh)
+with open(f'{sys.path[0]}/config.live.ini') as f: CONFIG = yaml.safe_load(f)
 CONFIG = CONFIG['ingest_api']
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
@@ -214,6 +217,7 @@ def ingest_api_get():
     testonly = parsedParams.get('testonly', 'False')
     log.info(f'ingest_api_get: input parameters - {reqDict}')
     log.info(f'ingest_api_get: parsed parameters - {parsedParams}')
+
 #    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
     if parsedParams['apiStatus'] != 'ERROR' and testonly.lower != 'true':
         # Change to test DB if dev=true
