@@ -209,11 +209,12 @@ if __name__ == '__main__':
     port = args.port
     mode = args.mode
     debug = False if mode == 'release' else True
+    logdir = args.logdir if mode == 'release' else '/tmp'
     host = '0.0.0.0'
     assert port != 0, "ERROR: Must provide port"
 
     #create logger
-    create_logger('wmko_rti_api', args.logdir)
+    create_logger('wmko_rti_api', logdir)
     log = logging.getLogger('wmko_rti_api')
 
     # run flask server
