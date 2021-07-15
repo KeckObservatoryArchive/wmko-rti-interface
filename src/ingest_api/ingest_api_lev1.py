@@ -1,6 +1,6 @@
 from os.path import isdir
 from datetime import datetime as dt
-from ingest_api_common import *
+from ingest_api.ingest_api_common import *
 
 def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_test'):
     '''

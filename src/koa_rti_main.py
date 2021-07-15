@@ -1,21 +1,20 @@
+import os
 import calendar
 import time
-from collections import namedtuple
-from datetime import datetime, timedelta, date
+import json
+import logging
+
+from pathlib import Path
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from flask_cors import CORS
 
-import os
-from pathlib import Path
-from ingest_api import *
-from koa_rti_api import KoaRtiApi
-from koa_rti_helpers import get_api_help_string, InstrumentReport
-from koa_rti_helpers import year_range, replace_datetime
-from koa_tpx_gui import tpx_gui
-
-import json
-import argparse
-import logging
+from ingest_api.ingest_api import ingest_api_get
+from utils.koa_rti_api import KoaRtiApi
+from utils.koa_rti_helpers import get_api_help_string, InstrumentReport, year_range
+from utils.koa_rti_helpers import parse_request, parse_results, parse_args
+from utils.koa_rti_helpers import api_results, get_results
+from utils.koa_tpx_gui import tpx_gui
 
 
 APP_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -39,6 +38,7 @@ cors = CORS(app, resources = {
 })
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+
 @app.route("/ingest_api", methods=["GET"])
 def ingest_api():
     log.info('ingest_api: starting api call')
@@ -52,15 +52,13 @@ def tpx_rti_api():
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 
-    results = api_results()
+    results = api_results(API_INSTANCE)
     if not results['data']:
         help_str = f"No Results for query parameters:<BR><BR> {var_get}<BR>"
-        help_str += get_api_help_string()
+        help_str += get_api_help_string(API_INSTANCE)
         return help_str
 
-    json_dump = json.dumps(results)
-
-    return json_dump
+    return jsonify(results)
 
 
 @app.route("/koarti", methods=['GET'])
@@ -147,13 +145,11 @@ def data_update():
                     'columns': 'null',
                     'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
-    results, columns = get_results()
+    results, columns = get_results(API_INSTANCE)
     try:
         results = json.dumps(results)
     except:
         log.error("ERROR! cannot json.dump data in data_update")
-
-    #print("results", results)
 
     return {'results': results,
             'columns': columns,
@@ -166,7 +162,7 @@ def load_data():
     Returns the current data content.  This is used to display the table the
     on initial load.
     """
-    results, columns = get_results()
+    results, columns = get_results(API_INSTANCE)
     try:
         results = json.dumps(results)
     except:
@@ -175,155 +171,6 @@ def load_data():
     return {'results': results,
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
-
-
-def api_results():
-    """
-    The results from querying the database.
-
-    :return: (list/dict, list) the database query results,  the keys/columns of
-                               the query.
-    """
-    if not API_INSTANCE:
-        return None
-
-    rti_api = API_INSTANCE
-    var_get = rti_api.get_params()
-    results = None
-    cmd = None
-
-    if var_get.search:
-        cmd = 'search' + var_get.search.upper().replace('_', '')
-    elif var_get.update:
-        cmd = 'update' + var_get.update.upper()
-    elif var_get.pykoa:
-        cmd = 'pykoa' + var_get.pykoa.upper()
-        if not var_get.progid:
-            return return_results(success=0, msg="use: progid=####")
-        # if not var_get.obsid:
-        #     return return_results(success=0, msg="use: obsid=####")
-
-    if cmd:
-        try:
-            print(cmd)
-            results = getattr(rti_api, cmd)()
-        except AttributeError as err:
-            return return_results(success=0, msg=err)
-        except ValueError as err:
-            return return_results(success=0, msg=err)
-
-        results = replace_datetime(results)
-
-    return return_results(results=results)
-
-
-def return_results(success=1, results=None, msg=None):
-    """
-    Return the results.  If json,  the results are a dictionary of
-    success,  data (the database query results), and any error messages.
-
-    :param results: <str> the results,  either a json formatted string or
-                          a string of the database query results.
-    :param success: <int> 1 for success, 0 for error
-    :param msg: <str> any message to return
-    :return: <dict> the results as a dictionary response
-    """
-    return {'success': success, 'data': results, 'msg': msg}
-
-
-def get_results():
-    """
-    The results from querying the database.
-
-    :return: (list/dict, list) the database query results,  the keys/columns of
-                               the query.
-    """
-    if not API_INSTANCE:
-        return None, None
-
-    rti_api = API_INSTANCE
-    var_get = rti_api.get_params()
-
-    if not var_get.page or var_get.page == 'daily':
-        if var_get.search:
-            cmd = 'search' + var_get.search.upper().replace('_', '')
-            try:
-                results = getattr(rti_api, cmd)()
-            except ValueError as err:
-                return return_error(err, True)
-            except AttributeError as err:
-                results = rti_api.searchDATE()
-        else:
-            results = rti_api.searchDATE()
-
-        results = rti_api.parse_results(results)
-    else:
-        results = rti_api.monthly_results()
-
-    db_columns = rti_api.getDbColumns()
-    results = replace_datetime(results)
-
-    return results, db_columns
-
-
-def return_error(err, web_out):
-    result = {'success': 0, 'data': {}, 'msg': str(err)}
-    if web_out:
-        return jsonify(result)
-    return str(result)
-
-
-def parse_request(default_utd=True):
-    """
-    Parse the url for the variable values,  set defaults
-
-    :return: (named tuple) day parameters
-    """
-    args = ['utd', 'utd2', 'search', 'update', 'pykoa', 'val', 'view', 'tel',
-            'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
-            'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
-
-    vars = dict((name, request.args.get(name)) for name in args)
-    for key, val in vars.items():
-        if val and val == "None":
-            vars[key] = None
-        elif val and val.isdigit():
-            vars[key] = int(val)
-
-        if not vars[key] and key in ['tel', 'dev', 'view']:
-            vars[key] = 0
-
-    if not vars['utd'] and default_utd:
-        vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
-
-    if not vars['month']:
-        vars['month'] = datetime.utcnow().strftime("%m")
-
-    if not vars['page']:
-        vars['page'] = 'daily'
-
-    # set defaults
-    if not request.args.get('posted'):
-        vars['chk'] = 1
-
-    return namedtuple('params', vars.keys())(*vars.values())
-
-
-def parse_args():
-    """
-    Parse the command line arguments.
-
-    :return: <obj> commandline arguments
-    """
-    parser = argparse.ArgumentParser(description="Start KOA RTI DB API.")
-    parser.add_argument("--logdir", type=str, default='/koadata/log',
-                        help="Define the directory for the log.")
-    parser.add_argument("--port", type=int, default=0, help="Server Port.")
-    parser.add_argument("--mode", type=str, choices=['dev', 'release'],
-                        default='release',
-                        help="Determines database access and debugging mode.")
-
-    return parser.parse_args()
 
 
 def create_logger(name, logdir):
