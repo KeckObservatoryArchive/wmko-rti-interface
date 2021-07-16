@@ -1,4 +1,5 @@
 import os
+import sys
 import calendar
 import time
 import json
@@ -205,6 +206,10 @@ def create_logger(name, logdir):
 
 if __name__ == '__main__':
 
+    #cd to script dir so relative paths work
+    os.chdir(sys.path[0])
+
+    #parse args
     args = parse_args()
     port = args.port
     mode = args.mode

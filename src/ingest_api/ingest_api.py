@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from datetime import datetime as dt
+from datetime import timedelta, datetime as dt
 import pdb
 from db_conn import db_conn
 #from functools import wraps
@@ -7,6 +7,8 @@ import json
 import yaml
 import os 
 import sys
+import smtplib
+from email.mime.text import MIMEText
 
 import logging
 log = logging.getLogger('wmko_rti_api')
@@ -15,8 +17,13 @@ from ingest_api.ingest_api_common import *
 from ingest_api.ingest_api_lev0 import update_lev0_parameters
 from ingest_api.ingest_api_lev1 import update_lev1_parameters
 
-#Load config in global space (NOTE: Needed sys path b/c cwd is not correct unless running via run.csh)
-with open(f'{sys.path[0]}/config.live.ini') as f: CONFIG = yaml.safe_load(f)
+
+#module globals
+LAST_EMAIL_TIMES = None
+
+#Load config in global space (NOTE: Need chdir b/c cwd is not correct unless running via run.csh)
+os.chdir(sys.path[0])
+with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
 CONFIG = CONFIG['ingest_api']
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
@@ -218,16 +225,63 @@ def ingest_api_get():
     log.info(f'ingest_api_get: input parameters - {reqDict}')
     log.info(f'ingest_api_get: parsed parameters - {parsedParams}')
 
-#    if parsedParams['apiStatus'] != 'ERROR' and not testonly:
-    if parsedParams['apiStatus'] != 'ERROR' and testonly.lower != 'true':
+    #API usage error
+    if parsedParams['apiStatus'] == 'ERROR':
+        notify_error("API_STATUS_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
+
+    #Good API call then update DB
+    elif parsedParams['apiStatus'] != 'ERROR' and testonly.lower != 'true':
+
+        #IPAC reports an error
+        if parsedParams['status'] == 'ERROR':
+            notify_error("IPAC_STATUS_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
+
         # Change to test DB if dev=true
-        dev = parsedParams.get('dev', 'False')
-        if dev.lower() == 'true': dbname = 'koa_test'
-        else: dbname = 'koa'
+        dbname = 'koa_test' if parsedParams.get('dev') == 'true' else 'koa'
         log.info(f'ingest_api_get: using database {dbname}')
-        #  create database object
-        conn = db_conn('./config.live.ini')
+
         # send request
+        conn = db_conn('./config.live.ini')
         parsedParams = funcs[parsedParams['ingesttype']](parsedParams, reingest, CONFIG, conn, dbUser=dbname)
         log.info(f'ingest_api_get: returned parameters - {parsedParams}')
+
+        #One more error check in case anything went wrong with db update
+        if parsedParams['apiStatus'] == 'ERROR':
+            notify_error("DATABASE_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
+
     return jsonify(parsedParams)
+
+
+
+def notify_error(errcode, text='', instr='', service='', check_time=True):
+    '''Email admins the error but only if we haven't sent one recently.'''
+
+    #always log/print
+    log.error(f'{errcode}: {text}')
+
+    #Only send if we haven't sent one of same errcode recently
+    interval = CONFIG['EMAIL_INTERVAL_MINUTES']
+    if check_time:
+        global LAST_EMAIL_TIMES
+        if not LAST_EMAIL_TIMES: LAST_EMAIL_TIMES = {}
+        last_time = LAST_EMAIL_TIMES.get(errcode)
+        now = dt.now()
+        if last_time and last_time + timedelta(minutes=interval) > now:
+            log.info(f"No error notification: last_time={last_time}, now={now}")
+            return
+        LAST_EMAIL_TIMES[errcode] = now
+
+    #get admin email.  Return if none.
+    adminEmail = CONFIG['ADMIN_EMAIL']
+    if not adminEmail: return
+    
+    # Construct email message
+    body = f'{errcode}\n{text}'
+    subj = f'KOA INGEST API ERROR: [{instr}] {errcode}'
+    msg = MIMEText(body)
+    msg['Subject'] = subj
+    msg['To']      = adminEmail
+    msg['From']    = adminEmail
+    s = smtplib.SMTP('localhost')
+    s.send_message(msg)
+    s.quit()

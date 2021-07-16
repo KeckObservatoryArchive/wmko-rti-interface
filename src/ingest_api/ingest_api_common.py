@@ -26,7 +26,10 @@ def query_unique_row(parsedParams, conn, dbUser, level=0):
     query = f"select * from koa_status where instrument='{instrument}' and koaid='{koaid}' and level={level}"
     result = conn.query(dbUser, query)
     #  This assert returns a null result
-    if len(result) != 1:
+    if result is False:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestErrors'].append(f'Database query error')
+    elif len(result) != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append(f'lev{level} koaid is missing or should be unique')
     return result, parsedParams
@@ -46,9 +49,11 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
     msg = defaultMsg if parsedParams['status'] == 'COMPLETE' else parsedParams['ingest_error']
     if msg != None: updateQuery = f"{updateQuery}, status_code_ipac='{msg}'"
     updateQuery = f"{updateQuery} where koaid='{koaid}' and level={level}"
-    print(updateQuery)
     result = conn.query(dbUser, updateQuery)
-    if result != 1:
+    if result is False:
+        parsedParams['apiStatus'] = 'ERROR'
+        parsedParams['ingestErrors'].append(f'Database query error')
+    elif result != 1:
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('error updating ipac_response_time')
 

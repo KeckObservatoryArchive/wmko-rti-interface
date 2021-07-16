@@ -7,7 +7,7 @@ def update_lev0_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
 
     #  check if unique
     result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
-    if len(result) != 1:
+    if result == False or len(result) != 1:
         return parsedParams
     result = result[0]
     #  verify that status is TRANSFERRED, ERROR or COMPLETE
