@@ -60,8 +60,8 @@ class DatabaseInteraction:
         else:
             self.db.execute(query)
 
-        if 'UPDATE' in query:
-            result = None
+        if 'UPDATE' in query.upper():
+            result = self.db.rowcount
         else:
             result = self.db.fetchall()
 

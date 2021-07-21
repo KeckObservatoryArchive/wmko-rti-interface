@@ -1,6 +1,7 @@
 import json
 
 from datetime import datetime
+import os
 from os import stat
 
 from utils.koa_rti_helpers import grab_value, query_prefix, date_iter
@@ -276,6 +277,53 @@ class KoaRtiApi:
         params = (self.params.val, )
 
         return query + str(params)
+
+    def update_status_reviewed(self, dbid, val):
+        """
+        Update koa_status.reviewed
+
+        :return:
+        """
+        query = ("UPDATE koa_status SET reviewed=%s "
+                 "WHERE id=%s;")
+        params = (val, dbid)
+
+        try:
+            res = self.db_functions.make_query(query, params)
+        except Exception as err:
+            return str(err)
+        return res
+
+    def get_log(self, dbid, format):
+        """
+        Returns the log file contents of a processed record
+        :return: (str) log text
+        """
+        query = "select * from koa_status where id=%s"
+        params = (dbid)
+        rows = self.db_functions.make_query(query, params)
+        if not rows:
+            return "LOG NOT FOUND"
+
+        row = rows[0]
+        filepath = f"{row['process_dir']}/{row['koaid']}.log"
+        if not os.path.exists(filepath):
+            return f"Log path not found: {filepath}"
+
+        txt = ''
+        with open(filepath) as f:
+            txt += f.read()
+
+        if format == 'html':
+            lines = txt.split("\n")
+            txt = ''
+            for line in lines:
+                if   "ERROR" in line.upper(): line = f"<span style='background-color:#ee8888'>{line}</span>"
+                elif "WARN"  in line.upper(): line = f"<span style='background-color:#eecc88'>{line}</span>"
+                txt += line + "<br>"
+
+        return txt
+
 
     # -- monthly view section ---
 

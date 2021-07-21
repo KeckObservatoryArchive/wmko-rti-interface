@@ -173,6 +173,38 @@ def load_data():
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
+@app.route("/koarti/koa_status/reviewed", methods=['PUT'])
+def update_koa_status_reviewed():
+    """
+    Update koa_status.reviewed for given list of ids.
+
+    json inputs:
+        val (int): Value to set
+        ids (array): Array of record IDs to update
+
+    :return: (int) num rows affected
+    """
+
+    #todo: This loop is inefficient.  Send array and build query with "IN"
+    var_get = parse_request()
+    api = KoaRtiApi(var_get)
+    val = request.json.get('val')
+    ids = request.json.get('ids')
+    for id in ids:
+        res = api.update_status_reviewed(id, val)
+    return str(res)
+
+@app.route("/koarti/log/<id>", methods=['GET'])
+def get_log(id):
+    """
+    Returns the log file contents of a processed record
+    """
+    var_get = parse_request()
+    api = KoaRtiApi(var_get)
+    format = request.args.get('format')
+    res = api.get_log(id, format)
+    return str(res)
+
 
 def create_logger(name, logdir):
 
