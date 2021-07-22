@@ -9,6 +9,7 @@
  */
 
 function update() {
+    console.log('update');
     $.ajax({
         url: '/koarti/data-update',
         success:  function(data) {
@@ -24,6 +25,7 @@ function update() {
  * server and refresh when answered (via update call).
  */
 function load() {
+    console.log('load');
     $.ajax({
         url: '/koarti/data',
         success: function(data) {
@@ -37,20 +39,31 @@ function load() {
  * Perform update of koa_status.reviewed.
  */
 function set_reviewed(id, val) {
-    let data = {"val":val, "ids": [id]};
+
+    var url = new URL(window.location.href);
+    var dev = parseInt(url.searchParams.get("dev"));
+
+    let data = {"val":val, "ids":[id], "dev":dev};
     $.ajax({
         url: '/koarti/koa_status/reviewed',
         contentType: 'application/json',
         data: JSON.stringify(data), 
         type: 'PUT',
         success: function(data) {
-            update();
-        }
+            console.log('set_reviewed successful');
+            window.location.reload(false); 
+            //load();
+        },
+        error: function (textStatus, errorThrown) {
+            console.log(textStatus+":"+errorThrown);
+        },
+        timeout: 5000
     });
 }
 
 function set_checked_reviewed(val, key)
 {
+
     //gather ids from checked boxes
     ids = [];
     var inputs = document.getElementsByTagName('input');
@@ -65,17 +78,27 @@ function set_checked_reviewed(val, key)
     }
     if (!ids) return;
 
-    let data = {"val":val, "ids": ids};
+    var url = new URL(window.location.href);
+    var dev = parseInt(url.searchParams.get("dev"));
+
+    let data = {"val":val, "ids":ids, "dev":dev};
+    console.log('set_checked_reviewed: '+data);
     $.ajax({
         url: '/koarti/koa_status/reviewed',
         contentType: 'application/json',
         data: JSON.stringify(data), 
         type: 'PUT',
         success: function(data) {
-            update();
-        }
+            console.log('set_checked_reviewed successful');
+            window.location.reload(false); 
+            //load();
+            //document.getElementById('checkall').checked = false;
+        },
+        error: function (textStatus, errorThrown) {
+            console.log(textStatus+":"+errorThrown);
+        },
+        timeout: 5000
     });
-
 }
 
 /**
@@ -114,7 +137,9 @@ function write_table(data) {
         $table.append("</tr>");
     }
     else {
-        add_batch_action_btns($table);
+        if (Boolean(results)) {
+            add_batch_action_btns($table);
+        }
     }
 }
 
@@ -147,7 +172,7 @@ function add_row_col($table, results, column, i, j) {
             if (err_code)
             {
                 if (reviewed == 1) cl = '';
-                else               cl = 'WARN';
+                else               cl = `WARN ${val}`;
             }
             err_val = val + "<br>(" + err_code +')';
             $table.append(`<td class='${cl}'>${err_val}</td>`);
@@ -187,6 +212,54 @@ function add_row_action_btns($table, data)
     htm += "</td>";
     $table.append(htm);
 }
+
+function start_spinner(divId)
+{
+    if (typeof gSpinner === 'undefined') 
+    {
+        var div = document.getElementById(divId);
+        gSpinner = create_spinner(divId);
+        div.style.pointerEvents = 'none';
+    }
+}
+
+function stop_spinner(divId)
+{
+    var div = document.getElementById(divId);
+    if (gSpinner) 
+    {
+        gSpinner.stop();
+        gSpinner = null;
+    }
+    div.style.pointerEvents = 'auto';
+}
+
+function create_spinner(divId)
+{
+    var opts = 
+    {
+        lines: 13,
+        length: 50,
+        width: 14,
+        radius: 40,
+        corners: 1,
+        rotate: 0,
+        color: '#000',
+        speed: 1,
+        trail: 60,
+        shadow: false,
+        hwaccel: false,
+        className: 'spinner',
+        zIndex: 2e9,
+        top: '120px',
+        left: '50%',
+        position: 'relative'
+    };
+    var div = document.getElementById(divId);
+    var spinner = new Spinner(opts).spin(div);
+    return spinner;
+}
+
 
 
 $(document).ready(function() {

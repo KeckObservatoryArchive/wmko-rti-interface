@@ -209,6 +209,7 @@
     {% include "./poll.js" %}
     {% include "./option_bar.js" %}
     {% include "./rti_util.js" %}
+    {% include "./spin.min.js" %}
 
     function load_params() {
         change_options("{{ params.page }}", {{inst_lists | tojson}}, 1);

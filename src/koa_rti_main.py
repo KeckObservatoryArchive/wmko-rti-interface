@@ -4,6 +4,7 @@ import calendar
 import time
 import json
 import logging
+from collections import namedtuple
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -181,18 +182,32 @@ def update_koa_status_reviewed():
     json inputs:
         val (int): Value to set
         ids (array): Array of record IDs to update
+        dev (int): dev mode (1 or 0_?
 
     :return: (int) num rows affected
     """
 
     #todo: This loop is inefficient.  Send array and build query with "IN"
-    var_get = parse_request()
-    api = KoaRtiApi(var_get)
+
+    #get passed json vars
+    print(request.json)
     val = request.json.get('val')
     ids = request.json.get('ids')
+    dev = request.json.get('dev')
+
+    #add 'dev' to namedtuple (kind of a hack for now)
+    params = parse_request()
+    params = dict(params._asdict())
+    params['dev'] = dev
+    params = namedtuple('params', params.keys())(*params.values())
+
+    #send update query for each id
+    api = KoaRtiApi(params)
+    num=0;
     for id in ids:
-        res = api.update_status_reviewed(id, val)
-    return str(res)
+        res = api.update_status_reviewed(id, val);
+        num += res;
+    return str(num)
 
 @app.route("/koarti/log/<id>", methods=['GET'])
 def get_log(id):
