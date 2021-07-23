@@ -5,12 +5,15 @@
 <!-- add spacing between form and table -->
 <p></p>
 
+<div id='table_div'>
 <table id="result_table" class="rti_table">
     <thead>
 
+    <th><input type=checkbox id="checkall" onchange="checkAll(this, 'CBrow');"></th>
     {% for i in range(0, db_columns | length() ) %}
         <th>{{db_columns[i]}}</th>
     {% endfor %}
+    <th>actions</th>
 
     </thead>
 
@@ -18,5 +21,6 @@
         <!-- printed from poll.js -->
     </tbody>
 </table>
+</div>
 
 {% endblock %}

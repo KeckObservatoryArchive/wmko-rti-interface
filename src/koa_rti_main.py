@@ -4,6 +4,7 @@ import calendar
 import time
 import json
 import logging
+from collections import namedtuple
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -172,6 +173,52 @@ def load_data():
     return {'results': results,
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
+
+@app.route("/koarti/koa_status/reviewed", methods=['PUT'])
+def update_koa_status_reviewed():
+    """
+    Update koa_status.reviewed for given list of ids.
+
+    json inputs:
+        val (int): Value to set
+        ids (array): Array of record IDs to update
+        dev (int): dev mode (1 or 0_?
+
+    :return: (int) num rows affected
+    """
+
+    #todo: This loop is inefficient.  Send array and build query with "IN"
+
+    #get passed json vars
+    print(request.json)
+    val = request.json.get('val')
+    ids = request.json.get('ids')
+    dev = request.json.get('dev')
+
+    #add 'dev' to namedtuple (kind of a hack for now)
+    params = parse_request()
+    params = dict(params._asdict())
+    params['dev'] = dev
+    params = namedtuple('params', params.keys())(*params.values())
+
+    #send update query for each id
+    api = KoaRtiApi(params)
+    num=0;
+    for id in ids:
+        res = api.update_status_reviewed(id, val);
+        num += res;
+    return str(num)
+
+@app.route("/koarti/log/<id>", methods=['GET'])
+def get_log(id):
+    """
+    Returns the log file contents of a processed record
+    """
+    var_get = parse_request()
+    api = KoaRtiApi(var_get)
+    format = request.args.get('format')
+    res = api.get_log(id, format)
+    return str(res)
 
 
 def create_logger(name, logdir):
