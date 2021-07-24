@@ -55,9 +55,6 @@ class KoaRtiApi:
         else:
             self.monthly_date = datetime.utcnow().strftime("%Y-%m")
 
-    def get_query_name(self):
-        return self.params.time
-
     def get_date_range(self):
         dates = (self.utd, self.params.utd2)
 
