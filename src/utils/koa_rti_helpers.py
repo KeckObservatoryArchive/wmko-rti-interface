@@ -141,8 +141,8 @@ def get_api_help_string(api_instance):
         elif 'update' in attribute:
             query_name = attribute.split('update')[1]
             update_list.append(query_name)
-        elif 'time' in attribute:
-            query_name = attribute.split('time')[1]
+        elif 'metrics' in attribute:
+            query_name = attribute.split('metrics')[1]
             time_list.append(query_name)
 
     help_str = "<BR><BR>Options: <BR><UL>"
@@ -262,8 +262,6 @@ def date_iter(year, month):
 
 
 # --- Main Helpers ---
-
-
 def api_results(API_INSTANCE):
     """
     The results from querying the database.
@@ -275,32 +273,28 @@ def api_results(API_INSTANCE):
         return None
 
     rti_api = API_INSTANCE
-    var_get = rti_api.get_params()
+    params = rti_api.get_params()
     results = None
     cmd = None
 
-    if var_get.time:
-        cmd = 'time' + var_get.time.upper().replace('_', '')
-    elif var_get.search:
-        cmd = 'search' + var_get.search.upper().replace('_', '')
-    elif var_get.update:
-        cmd = 'update' + var_get.update.upper()
-    elif var_get.pykoa:
-        cmd = 'pykoa' + var_get.pykoa.upper()
-        if not var_get.progid:
+    cmd_types = ['metrics', 'search', 'update', 'pykoa']
+    for cmd_type in cmd_types:
+        if getattr(params, cmd_type):
+            cmd = getattr(params, cmd_type).upper().replace('_', '')
+            break
+
+        if cmd_type == 'pykoa' and not params.progid:
             return return_results(success=0, msg="use: progid=####")
 
     if cmd:
         try:
-            results = getattr(rti_api, cmd)()
-        except AttributeError as err:
-            return return_results(success=0, msg=err)
-        except ValueError as err:
+            results = getattr(rti_api, cmd_type + cmd)()
+        except (AttributeError, ValueError) as err:
             return return_results(success=0, msg=err)
 
         results = replace_datetime(results)
 
-    return return_results(results=results)
+    return return_results(results=results, cmd=cmd, cmd_type=cmd_type, api=API_INSTANCE)
 
 
 def get_results(API_INSTANCE):
@@ -314,15 +308,15 @@ def get_results(API_INSTANCE):
         return None, None
 
     rti_api = API_INSTANCE
-    var_get = rti_api.get_params()
+    params = rti_api.get_params()
 
-    if not var_get.page or var_get.page == 'daily':
-        if var_get.search:
-            cmd = 'search' + var_get.search.upper().replace('_', '')
+    if not params.page or params.page == 'daily':
+        if params.search:
+            cmd = 'search' + params.search.upper().replace('_', '')
             try:
                 results = getattr(rti_api, cmd)()
             except ValueError as err:
-                return return_error(err, True)
+                return return_results(success=0, msg=err)
             except AttributeError as err:
                 results = rti_api.searchDATE()
         else:
@@ -338,7 +332,8 @@ def get_results(API_INSTANCE):
     return results, db_columns
 
 
-def return_results(success=1, results=None, msg=None):
+def return_results(success=1, results=None, cmd=None, cmd_type='command',
+                   msg=None, api=None):
     """
     Return the results.  If json,  the results are a dictionary of
     success,  data (the database query results), and any error messages.
@@ -346,16 +341,34 @@ def return_results(success=1, results=None, msg=None):
     :param results: <str> the results,  either a json formatted string or
                           a string of the database query results.
     :param success: <int> 1 for success, 0 for error
+    :param cmd: <str> The command called by the observer
     :param msg: <str> any message to return
+    :param api: <api instance> the instantiated API.
     :return: <dict> the results as a dictionary response
     """
     if success == 1:
         api_status = 'COMPLETE'
+    else:
+        api_status = 'ERROR'
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    if api:
+        dates = api.get_date_range()
+        ut_start = dates[0]
+        ut_end = dates[1]
+    else:
+        ut_start = None
+        ut_end = None
+
+    if results:
+        nfiles = len(results)
+    else:
+        nfiles = 0
+
     return {'success': success, 'msg': msg, 'apiStatus': api_status,
-            'timestamp': now, 'data': results}
+            'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
+            'num_files': nfiles, cmd_type: cmd, 'data': results}
 
 
 def parse_request(default_utd=True):
@@ -364,7 +377,7 @@ def parse_request(default_utd=True):
 
     :return: (named tuple) day parameters
     """
-    args = ['utd', 'utd2', 'search', 'update', 'time', 'pykoa', 'val', 'view',
+    args = ['utd', 'utd2', 'search', 'update', 'metrics', 'pykoa', 'val', 'view',
             'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
             'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
 
@@ -378,7 +391,7 @@ def parse_request(default_utd=True):
         if not vars[key] and key in ['tel', 'dev', 'view']:
             vars[key] = 0
 
-    if not vars['utd'] and default_utd or vars['time']:
+    if not vars['utd'] and default_utd or vars['metrics']:
         if vars['month']:
             if not vars['yr']:
                 vars['yr'] = int(datetime.utcnow().strftime("%Y"))
@@ -419,21 +432,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def return_error(err, web_out):
-    result = {'success': 0, 'data': {}, 'msg': str(err)}
-    if web_out:
-        return jsonify(result)
-    return str(result)
-
-
 class InstrumentReport:
 
     def __init__(self, inst):
         self.inst = inst
         self.test_output = self.run_tests()
-
-    def json_sting(self):
-        return self.test_output
 
     def run_tests(self):
         """

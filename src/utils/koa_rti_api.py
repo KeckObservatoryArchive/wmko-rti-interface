@@ -43,7 +43,6 @@ class KoaRtiApi:
         self.default_num_columns = 7
         self.search_val = var_get.val
         self.update_val = var_get.update_val
-        self.var_get = var_get
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
@@ -55,6 +54,14 @@ class KoaRtiApi:
             self.monthly_date = f'{var_get.yr}-{var_get.month:0>2}'
         else:
             self.monthly_date = datetime.utcnow().strftime("%Y-%m")
+
+    def get_query_name(self):
+        return self.params.time
+
+    def get_date_range(self):
+        dates = (self.utd, self.params.utd2)
+
+        return dates
 
     def getOptionLists(self):
         """
@@ -239,11 +246,13 @@ class KoaRtiApi:
         return results
 
     def searchGENERAL(self):
-        query, params = self._generic_query(columns=self.var_get.columns,
-                                            key=self.var_get.key,
+        print("made it")
+        query, params = self._generic_query(columns=self.params.columns,
+                                            key=self.params.key,
                                             val=self.search_val,
-                                            add=self.var_get.add)
+                                            add=self.params.add)
 
+        print("HUH", query, params)
         try:
             results = self.db_functions.make_query(query, params)
         except Exception as err:
@@ -258,9 +267,9 @@ class KoaRtiApi:
 
         :return:
         """
-        query = f"UPDATE koa_status SET {self.var_get.columns}=%s "
-        query += f"WHERE {self.var_get.key}=%s AND level=0;"
-        params = (self.var_get.update_val, self.search_val)
+        query = f"UPDATE koa_status SET {self.params.columns}=%s "
+        query += f"WHERE {self.params.key}=%s AND level=0;"
+        params = (self.params.update_val, self.search_val)
 
         try:
             self.db_functions.make_query(query, params)
@@ -400,7 +409,7 @@ class KoaRtiApi:
     # | xfr_end_time        | ipac_notify_time    | ingest_start_time   | ingest_copy_start_time
     # | ingest_copy_end_time | ingest_end_time     | ipac_response_time  | stage_time |
 
-    def timePROCESS(self):
+    def metricsPROCESS(self):
         """
         Find the the time difference between creation and process end.
 
@@ -412,7 +421,7 @@ class KoaRtiApi:
 
         return stats
 
-    def timeTRANSFER(self):
+    def metricsTRANSFER(self):
         """
         Find the the time difference between transfer start and end.
 
@@ -422,7 +431,7 @@ class KoaRtiApi:
 
         return stats
 
-    def timeINGEST(self):
+    def metricsINGEST(self):
         """
         Find the the time difference between ingestion start and end.
 
@@ -432,7 +441,7 @@ class KoaRtiApi:
 
         return stats
 
-    def timeCOPYINGEST(self):
+    def metricsCOPYINGEST(self):
         """
         Find the the time difference between copyingestion start and end.
 
@@ -442,7 +451,7 @@ class KoaRtiApi:
 
         return stats
 
-    def timeTOTAL(self):
+    def metricsTOTAL(self):
         """
         Find the the time difference between start and end.
 
@@ -618,8 +627,10 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
+        print("made it too")
         query, params, add_str = query_prefix(columns, key, val, table)
 
+        print("query", query)
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
                 query += f" {add_str} utdatetime between %s and %s"
