@@ -243,13 +243,11 @@ class KoaRtiApi:
         return results
 
     def searchGENERAL(self):
-        print("made it")
         query, params = self._generic_query(columns=self.params.columns,
                                             key=self.params.key,
                                             val=self.search_val,
                                             add=self.params.add)
 
-        print("HUH", query, params)
         try:
             results = self.db_functions.make_query(query, params)
         except Exception as err:
@@ -624,10 +622,8 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        print("made it too")
         query, params, add_str = query_prefix(columns, key, val, table)
 
-        print("query", query)
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
                 query += f" {add_str} utdatetime between %s and %s"
