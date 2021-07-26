@@ -371,7 +371,7 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
             'num_files': nfiles, cmd_type: cmd, 'data': results}
 
 
-def parse_request(default_utd=True):
+def parse_request(default_utd=True, method='GET'):
     """
     Parse the url for the variable values,  set defaults
 
@@ -381,12 +381,21 @@ def parse_request(default_utd=True):
             'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
             'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
 
-    vars = dict((name, request.args.get(name)) for name in args)
+    if method == 'GET':
+        vars = dict((name, request.args.get(name)) for name in args)
+    elif method in ['PUT', 'POST']:
+        vars = dict((name, request.json.get(name)) for name in args)
+    else:
+        return
+
     for key, val in vars.items():
         if val and val == "None":
             vars[key] = None
-        elif val and val.isdigit():
-            vars[key] = int(val)
+        elif val:
+            try:
+                vars[key] = int(val)
+            except ValueError:
+                pass
 
         if not vars[key] and key in ['tel', 'dev', 'view']:
             vars[key] = 0

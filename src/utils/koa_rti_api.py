@@ -258,7 +258,7 @@ class KoaRtiApi:
     # -- update section for api --
     def updateGENERAL(self):
         """
-        General update function to update a single column in the dep_satus table.
+        General update function to update a single column in the koa_satus table.
 
         :return:
         """

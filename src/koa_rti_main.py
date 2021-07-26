@@ -190,23 +190,15 @@ def update_koa_status_reviewed():
     #todo: This loop is inefficient.  Send array and build query with "IN"
 
     #get passed json vars
-    print(request.json)
     val = request.json.get('val')
     ids = request.json.get('ids')
-    dev = request.json.get('dev')
-
-    #add 'dev' to namedtuple (kind of a hack for now)
-    params = parse_request()
-    params = dict(params._asdict())
-    params['dev'] = dev
-    params = namedtuple('params', params.keys())(*params.values())
 
     #send update query for each id
-    api = KoaRtiApi(params)
-    num=0;
+    api = KoaRtiApi(parse_request(method='PUT'))
+    num = 0
     for id in ids:
-        res = api.update_status_reviewed(id, val);
-        num += res;
+        res = api.update_status_reviewed(id, val)
+        num += res
     return str(num)
 
 @app.route("/koarti/log/<id>", methods=['GET'])
