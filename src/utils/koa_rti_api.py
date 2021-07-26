@@ -277,7 +277,7 @@ class KoaRtiApi:
         return results
 
     def updateMARKDELETED(self):
-        query = f"UPDATE koa_status SET ofname_deleted = True WHERE koaid=%s"
+        query = f"UPDATE koa_status SET source_deleted = True WHERE koaid=%s"
         params = (self.params.val, )
 
         return query + str(params)
