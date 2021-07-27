@@ -150,7 +150,6 @@ def parse_query_param(key, value):
         "ingest_error": parse_message,
         "metrics": parse_metrics,
         "start": parse_message,
-        "dev": parse_message,
         "datadir": parse_message,
         }
     key = ''.join(key.split()).lower()
@@ -236,8 +235,7 @@ def ingest_api_get():
         if parsedParams['status'] == 'ERROR':
             notify_error("IPAC_STATUS_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
 
-        # Change to test DB if dev=true
-        dbname = 'koa_test' if parsedParams.get('dev') == 'true' else 'koa'
+        dbname = 'koa'
         log.info(f'ingest_api_get: using database {dbname}')
 
         # send request
