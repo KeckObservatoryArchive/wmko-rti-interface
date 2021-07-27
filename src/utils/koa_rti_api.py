@@ -16,9 +16,11 @@ class KoaRtiApi:
         self.db_functions = DatabaseInteraction(var_get.dev)
 
         self.query_opts = ['None', 'HEADER', 'Image_Type', 'KOAID',
-                           'Last_Entry', 'STATUS', 'SEMID']
+                           'Last_Entry', 'STATUS', 'STATUS_CODE', 'SEMID']
         self.status_opts = ['COMPLETE', 'TRANSFERRED', 'TRANSFERRING',
                             'PROCESSING', 'ERROR', 'INVALID', 'WARN']
+        self.status_code_opts = ['INVALID_PROGID_WARN', 'SET_DATEOBS_WARN',
+                                 'MD_DISCRETE_VAL_ERROR', 'MD_TRUNCATE']
         self.img_types = ['OBJECT', 'BIAS', 'ARCLAMP', 'FLATLAMP', 'FOCUS']
 
         self.keck1_inst = ['None', 'HIRES', 'LRIS', 'MOSFIRE', 'OSIRIS']
@@ -67,6 +69,7 @@ class KoaRtiApi:
         :return: (dict/list) option lists
         """
         opt_lists = {'query': self.query_opts, 'status': self.status_opts,
+                     'status_code': self.status_code_opts,
                      'img_type': self.img_types}
 
         return opt_lists
@@ -128,6 +131,16 @@ class KoaRtiApi:
         :return: (list) row/columns to be used for the table.
         """
         query, params = self._generic_query(key="STATUS", val=self.search_val)
+
+        return self.db_functions.make_query(query, params)
+
+    def searchSTATUSCODE(self):
+        """
+        Find all results with a certain status.
+
+        :return: (list) row/columns to be used for the table.
+        """
+        query, params = self._generic_query(key="STATUS_CODE", val=self.search_val)
 
         return self.db_functions.make_query(query, params)
 

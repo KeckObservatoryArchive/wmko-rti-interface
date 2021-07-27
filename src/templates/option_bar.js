@@ -64,31 +64,31 @@ function enable_div(div_name) {
 function check_enable(chk, change_str) {
     // enable / disable values associated to the checkbox element
     let checkBox = document.getElementById(chk);
-    let to_change = change_str.split(', ')
+    let to_change = change_str.split(', ');
 
     if (checkBox.checked === true){
-        enable(to_change)
+        enable(to_change);
     } else {
-        disable(to_change)
+        disable(to_change);
     }
 }
 
 function hide_report() {
     let table_id = document.getElementById('show_table');
     if (table_id.style.display === "none") {
-        enable_div("show_table")
+        enable_div("show_table");
     } else {
-        block_div("show_table")
+        block_div("show_table");
     }
 }
 
 function update_input_value(search_val, utd, val, opt_lists) {
 
-    if (search_val === 'STATUS' || search_val === 'Image_Type') {
+    if (search_val === 'STATUS' || search_val === 'STATUS_CODE' || search_val === 'Image_Type') {
         enable("enter_value");
         disable("val");
-        block_div("enter_val")
-        enable_div("enter_opts")
+        block_div("enter_val");
+        enable_div("enter_opts");
 
         set_section('enter_value', val);
         update_pulldown(search_val, opt_lists, val);
@@ -96,8 +96,8 @@ function update_input_value(search_val, utd, val, opt_lists) {
     else {
         enable("val");
         disable("enter_value");
-        block_div("enter_opts")
-        enable_div("enter_val")
+        block_div("enter_opts");
+        enable_div("enter_val");
 
         let default_val = '';
         if (search_val === 'PI') {
@@ -116,9 +116,9 @@ function update_input_value(search_val, utd, val, opt_lists) {
             let yr = utd.substring(0, 4);
             default_val = yr + sem;
         }
-        set_section('val', default_val)
+        set_section('val', default_val);
     }
-    set_section('search', search_val)
+    set_section('search', search_val);
 }
 
 function change_options(val, inst_lists, on_load) {
@@ -232,6 +232,8 @@ function update_pulldown(search_val, opt_lists, val) {
     let enter_opts;
     if (search_val === "Image_Type") {
         enter_opts = opt_lists['img_type'];
+    } else if (search_val === "STATUS_CODE") {
+        enter_opts = opt_lists['status_code'];
     } else {
         enter_opts = opt_lists['status'] ;
     }
