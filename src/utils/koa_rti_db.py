@@ -11,15 +11,12 @@ APP_PATH = path.abspath(path.dirname(__file__))
 
 
 class DatabaseInteraction:
-    def __init__(self, dev):
+    def __init__(self):
         # config file for db,  ie config.live.ini
         self.filename = path.join(APP_PATH, CONFIG_FILE)
 
         self.conn_obj = db_conn(self.filename)
-        if dev == 1:
-            self.db_name = "koa_test"
-        else:
-            self.db_name = "koa"
+        self.db_name = "koa"
         self.db = None
 
     def connect_db(self, db_name, second_try=False):

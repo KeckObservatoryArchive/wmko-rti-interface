@@ -4,7 +4,6 @@ import calendar
 import time
 import json
 import logging
-from collections import namedtuple
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -182,7 +181,6 @@ def update_koa_status_reviewed():
     json inputs:
         val (int): Value to set
         ids (array): Array of record IDs to update
-        dev (int): dev mode (1 or 0_?
 
     :return: (int) num rows affected
     """

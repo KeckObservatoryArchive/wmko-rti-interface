@@ -41,9 +41,8 @@ function load() {
 function set_reviewed(id, val) {
 
     var url = new URL(window.location.href);
-    var dev = parseInt(url.searchParams.get("dev"));
 
-    let data = {"val":val, "ids":[id], "dev":dev};
+    let data = {"val":val, "ids":[id]};
     $.ajax({
         url: '/koarti/koa_status/reviewed',
         contentType: 'application/json',
@@ -79,9 +78,8 @@ function set_checked_reviewed(val, key)
     if (!ids) return;
 
     var url = new URL(window.location.href);
-    var dev = parseInt(url.searchParams.get("dev"));
 
-    let data = {"val":val, "ids":ids, "dev":dev};
+    let data = {"val":val, "ids":ids};
     console.log('set_checked_reviewed: '+data);
     $.ajax({
         url: '/koarti/koa_status/reviewed',

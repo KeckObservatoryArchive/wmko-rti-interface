@@ -13,7 +13,7 @@ from utils.koa_rti_plots import TimeBarPlot, OverlayTimePlot
 class KoaRtiApi:
 
     def __init__(self, var_get):
-        self.db_functions = DatabaseInteraction(var_get.dev)
+        self.db_functions = DatabaseInteraction()
 
         self.query_opts = ['None', 'HEADER', 'Image_Type', 'KOAID',
                            'Last_Entry', 'STATUS', 'STATUS_CODE', 'SEMID']
@@ -731,10 +731,7 @@ class KoaRtiApi:
 
         :return: (bool) True if modified after request_time.
         """
-        if self.params.dev == 1:
-            filepath = "/var/lib/mysql/koa_test/koa_status.ibd"
-        else:
-            filepath = "/var/lib/mysql/koa/koa_status.ibd"
+        filepath = "/var/lib/mysql/koa/koa_status.ibd"
 
         try:
             if self.is_daily() and stat(filepath).st_mtime > request_time:

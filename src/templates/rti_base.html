@@ -187,13 +187,6 @@
     </div>
     <!-- END MONTHLY Options (monthly_opts) -->
 
-    <td width="25%" nowrap="">
-    <select class="sel_style"id="dev" name="dev">
-        <option value="0" {% if params.dev == 0 %} selected {% endif %}>RTI</option>
-        <option value="1" {% if params.dev == 1 %} selected {% endif %}>DEV</option>
-    </select>
-    </td>
-
     <!-- initialize submit button to reload page -->
     <input type="hidden" name="posted" value="1" />
     <input class="submit_style" type="submit" value="Submit">
@@ -219,7 +212,6 @@
         check_enable('chk1', 'limit')
         update_inst("{{params.tel}}", "{{ params.inst }}", {{inst_lists | tojson}});
         set_section("tel", "{{params.tel}}");
-        set_section("dev", "{{params.dev}}");
         set_section("view", "{{params.view}}");
         set_section("page", "{{params.page}}");
         set_section("month", "{{params.month}}");

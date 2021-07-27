@@ -378,7 +378,7 @@ def parse_request(default_utd=True, method='GET'):
     :return: (named tuple) day parameters
     """
     args = ['utd', 'utd2', 'search', 'update', 'metrics', 'pykoa', 'val', 'view',
-            'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1', 'dev',
+            'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1',
             'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
 
     if method == 'GET':
@@ -397,7 +397,7 @@ def parse_request(default_utd=True, method='GET'):
             except ValueError:
                 pass
 
-        if not vars[key] and key in ['tel', 'dev', 'view']:
+        if not vars[key] and key in ['tel', 'view']:
             vars[key] = 0
 
     if not vars['utd'] and default_utd or vars['metrics']:
