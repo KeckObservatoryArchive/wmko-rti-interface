@@ -9,7 +9,6 @@
  */
 
 function update() {
-    console.log('update');
     $.ajax({
         url: '/koarti/data-update',
         success:  function(data) {
@@ -25,7 +24,6 @@ function update() {
  * server and refresh when answered (via update call).
  */
 function load() {
-    console.log('load');
     $.ajax({
         url: '/koarti/data',
         success: function(data) {
@@ -56,7 +54,7 @@ function set_reviewed(id, val) {
         error: function (textStatus, errorThrown) {
             console.log(textStatus+":"+errorThrown);
         },
-        timeout: 5000
+        timeout: 5000000
     });
 }
 
@@ -95,7 +93,7 @@ function set_checked_reviewed(val, key)
         error: function (textStatus, errorThrown) {
             console.log(textStatus+":"+errorThrown);
         },
-        timeout: 5000
+        timeout: 5000000
     });
 }
 

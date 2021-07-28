@@ -2,7 +2,6 @@ from flask import request, jsonify
 from datetime import timedelta, datetime as dt
 import pdb
 from db_conn import db_conn
-#from functools import wraps
 import json
 import yaml
 import os 
@@ -103,7 +102,7 @@ def parse_metrics(metrics):
         try:
             t = dt.strptime(metrics[key], '%Y-%m-%d %H:%M:%S')
         except:
-            raise DateParseException(f'Incorrect format for metrics key {key}')
+            raise ParameterException(f'Incorrect format for metrics key {key}')
     return metrics
 
 def parse_utdate(utdate, format='%Y-%m-%d'):
@@ -117,8 +116,14 @@ def parse_utdate(utdate, format='%Y-%m-%d'):
 
 def parse_koaid(koaid):
     '''koaid is run through assertions to check that it fits koaid format II.YYYYMMDD.SSSSS.SS.fits.'''
-    
-    inst, utdate, seconds, dec, ftype = koaid.split('.')
+
+    try:
+        inst, utdate, seconds, dec, ftype = koaid.split('.')
+    except:
+        err = f'KOAID: {koaid} must be five parts (.) separated, ' \
+              f'ending with file type (ie .fits)'
+        raise ParameterException(err)
+
     assert_in_set(inst, CONFIG['INST_SET_ABBR'])
     t = parse_utdate(utdate, format='%Y%m%d')
     assert len(seconds) == 5, 'check seconds length'
@@ -129,6 +134,7 @@ def parse_koaid(koaid):
     assert float(uttime) < 86400, 'seconds exceed day'
     assert ftype == 'fits', 'check file type'
     koaid = koaid.replace(".fits", "")
+
     return koaid
 
 def parse_message(msg):
@@ -270,7 +276,8 @@ def notify_error(errcode, text='', instr='', service='', check_time=True):
         LAST_EMAIL_TIMES[errcode] = now
 
     #get admin email.  Return if none.
-    adminEmail = CONFIG['ADMIN_EMAIL']
+    # adminEmail = CONFIG['ADMIN_EMAIL']
+    adminEmail = ''
     if not adminEmail: return
     
     # Construct email message

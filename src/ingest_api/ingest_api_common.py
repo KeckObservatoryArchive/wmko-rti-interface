@@ -4,6 +4,9 @@ from datetime import datetime as dt
 class DateParseException(Exception):
     pass
 
+class ParameterException(Exception):
+    pass
+
 def try_assert(method):
     @wraps(method)
     def tryer(*args, **kw):

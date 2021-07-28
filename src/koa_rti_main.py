@@ -184,9 +184,6 @@ def update_koa_status_reviewed():
 
     :return: (int) num rows affected
     """
-
-    #todo: This loop is inefficient.  Send array and build query with "IN"
-
     #get passed json vars
     val = request.json.get('val')
     ids = request.json.get('ids')
