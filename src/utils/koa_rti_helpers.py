@@ -400,7 +400,7 @@ def parse_request(default_utd=True, method='GET'):
         if not vars[key] and key in ['tel', 'view']:
             vars[key] = 0
 
-    if not vars['utd'] and default_utd or vars['metrics']:
+    if (not vars['utd'] and default_utd) or (not vars['utd'] and vars['metrics']):
         if vars['month']:
             if not vars['yr']:
                 vars['yr'] = int(datetime.utcnow().strftime("%Y"))
