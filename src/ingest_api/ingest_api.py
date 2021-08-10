@@ -251,7 +251,7 @@ def ingest_api_get():
         log.info(f'ingest_api_get: returned parameters - {parsedParams}')
 
         #One more error check in case anything went wrong with db update
-        if parsedParams['apiStatus'] == 'ERROR':
+        if 'status' in parsedParams.keys() and parsedParams['apiStatus'] == 'ERROR':
             notify_error("DATABASE_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
 
     return jsonify(parsedParams)
