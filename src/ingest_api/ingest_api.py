@@ -239,7 +239,7 @@ def ingest_api_get():
     elif parsedParams['apiStatus'] != 'ERROR' and testonly.lower != 'true':
 
         #IPAC reports an error
-        if parsedParams['status'] == 'ERROR':
+        if 'status' in parsedParams.keys() and parsedParams['status'] == 'ERROR':
             notify_error("IPAC_STATUS_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
 
         dbname = 'koa'
