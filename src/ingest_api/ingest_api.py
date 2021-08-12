@@ -297,7 +297,7 @@ def notify_error(errcode, text='', instr='', service='', check_time=True):
         LAST_EMAIL_TIMES[errcode] = now
 
     #get admin email.  Return if none.
-    # adminEmail = CONFIG['ADMIN_EMAIL']
+    adminEmail = CONFIG['ADMIN_EMAIL']
     adminEmail = ''
     if not adminEmail: return
     
