@@ -258,7 +258,7 @@ if __name__ == '__main__':
 
     # run flask server
     log.info(f"Starting RTI API:\nPORT = {port}\nMODE = {mode}")
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=host, port=port, debug=False)
     log.info("Stopping KOA RTI API.\n")
 
 
