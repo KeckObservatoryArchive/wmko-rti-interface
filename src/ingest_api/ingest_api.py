@@ -16,6 +16,8 @@ from ingest_api.ingest_api_common import *
 from ingest_api.ingest_api_lev0 import update_lev0_parameters
 from ingest_api.ingest_api_lev1 import update_lev1_parameters
 
+from utils.koa_pi_notify import KoaPiNotify
+
 
 #module globals
 LAST_EMAIL_TIMES = None
@@ -254,8 +256,26 @@ def ingest_api_get():
         if 'status' in parsedParams.keys() and parsedParams['apiStatus'] == 'ERROR':
             notify_error("DATABASE_ERROR", json.dumps(parsedParams, indent=4), parsedParams.get('instrument'))
 
+        #ok successful ingest, so lets email the PI:
+        else:
+            notify_pi(parsedParams)
+
     return jsonify(parsedParams)
 
+
+def notify_pi(parsedParams):
+
+    koaid = parsedParams['koaid']
+    instr = parsedParams['instrument']
+    level = parsedParams['ingesttype']
+    #todo: turning on dev until we are ready to make this feature live
+    #dev = 1 if parsedParams.get('dev') == 'true' else 0
+    dev = 1
+
+    kpn = KoaPiNotify(koaid, instr, level, dev)
+    res, msg = kpn.on_ingest()
+    if res is False:
+        log.error(msg)
 
 
 def notify_error(errcode, text='', instr='', service='', check_time=True):
