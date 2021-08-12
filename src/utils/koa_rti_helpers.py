@@ -128,7 +128,7 @@ def replace_datetime(results):
 def get_api_help_string(api_instance):
     search_list = []
     update_list = []
-    time_list = []
+    metrics_list = []
 
     for attribute in dir(api_instance):
 
@@ -143,11 +143,11 @@ def get_api_help_string(api_instance):
             update_list.append(query_name)
         elif 'metrics' in attribute:
             query_name = attribute.split('metrics')[1]
-            time_list.append(query_name)
+            metrics_list.append(query_name)
 
     help_str = "<BR><BR>Options: <BR><UL>"
     help_str += f"<li>search={search_list}<BR>"
-    help_str += f"<li>time={time_list}<BR>"
+    help_str += f"<li>metrics={metrics_list}<BR>"
     help_str += f"<li>update={update_list}<BR>"
 
     help_str += f"<BR>"
@@ -288,13 +288,23 @@ def api_results(API_INSTANCE):
 
     if cmd:
         try:
-            results = getattr(rti_api, cmd_type + cmd)()
+            if cmd_type == 'metrics':
+                results, sums = getattr(rti_api, cmd_type + cmd)()
+            else:
+                results = getattr(rti_api, cmd_type + cmd)()
         except (AttributeError, ValueError) as err:
             return return_results(success=0, msg=err)
 
         results = replace_datetime(results)
 
-    return return_results(results=results, cmd=cmd, cmd_type=cmd_type, api=API_INSTANCE)
+    response = return_results(results=results, cmd=cmd, cmd_type=cmd_type,
+                              api=API_INSTANCE)
+
+    if cmd_type == 'metrics':
+        return {**response, **sums}
+
+    return response
+
 
 
 def get_results(API_INSTANCE):
@@ -371,15 +381,25 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
             'num_files': nfiles, cmd_type: cmd, 'data': results}
 
 
+# def return_metrics_results(response, sums):
+#
+#     respo
+#     response['sum_time'] = None
+#     response['sum_size'] = None
+#
+#     return response
+
+
 def parse_request(default_utd=True, method='GET'):
     """
     Parse the url for the variable values,  set defaults
 
     :return: (named tuple) day parameters
     """
-    args = ['utd', 'utd2', 'search', 'update', 'metrics', 'pykoa', 'val', 'view',
-            'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk', 'chk1',
-            'obsid', 'progid', 'plot', 'columns', 'key', 'add', 'update_val']
+    args = ['utd', 'utd2', 'search', 'update', 'metrics', 'pykoa', 'val',
+            'view', 'tel', 'inst', 'page', 'yr', 'month', 'limit', 'chk',
+            'chk1', 'obsid', 'progid', 'plot', 'columns', 'key', 'add',
+            'level', 'data', 'update_val']
 
     if method == 'GET':
         vars = dict((name, request.args.get(name)) for name in args)
@@ -400,7 +420,7 @@ def parse_request(default_utd=True, method='GET'):
         if not vars[key] and key in ['tel', 'view']:
             vars[key] = 0
 
-    if not vars['utd'] and default_utd or vars['metrics']:
+    if not vars['utd'] and default_utd or not vars['utd'] and vars['metrics']:
         if vars['month']:
             if not vars['yr']:
                 vars['yr'] = int(datetime.utcnow().strftime("%Y"))

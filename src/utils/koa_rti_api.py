@@ -1,6 +1,6 @@
 import json
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from os import stat
 
@@ -255,16 +255,73 @@ class KoaRtiApi:
 
         return results
 
+    def searchLEV1(self, columns=None, level=1):
+        """
+        Search for lev1 (DRP) files.
+
+        :return: [{results}] array of DB search results
+        """
+        if not columns:
+            columns = self.params.columns
+        query, params, add_str = query_prefix(
+            columns, self.params.key, self.params.val)
+
+        query += f" {add_str} LEVEL={level} "
+        add_str = "AND"
+
+        if self.params.add:
+            query += f" {add_str} {self.params.add} "
+            add_str = "AND"
+
+        if self.utd and self.params.utd2:
+            results = []
+            current_date = datetime.strptime(self.utd, '%Y-%m-%d')
+            end_date = datetime.strptime(self.params.utd2, '%Y-%m-%d')
+            query_str = query + f" {add_str} KOAID LIKE %s"
+
+            initial = 1
+            while current_date <= end_date:
+                date_str = current_date.strftime('%Y%m%d')
+
+                # add the new date to the query parameters
+                p_list = list(params)
+                if initial:
+                    p_list.append(f"%{date_str}%")
+                    initial = 0
+                else:
+                    p_list[-1] = f"%{date_str}%"
+                params = tuple(p_list)
+
+                try:
+                    days_results = self._lev1_query(query_str, params)
+                    if days_results:
+                        results += days_results
+                except ValueError as err:
+                    raise ValueError(err)
+
+                current_date += timedelta(days=1)
+
+            return results
+
+        return self._lev1_query(query, params)
+
+    def _lev1_query(self, query, params):
+        try:
+            results = self.db_functions.make_query(query, params)
+        except Exception as err:
+            raise ValueError(err)
+
+        return results
+
     def searchGENERAL(self):
-        query, params = self._generic_query(columns=self.params.columns,
-                                            key=self.params.key,
-                                            val=self.search_val,
-                                            add=self.params.add)
+        query, params = self._generic_query(
+            columns=self.params.columns, key=self.params.key,
+            val=self.search_val, add=self.params.add)
 
         try:
             results = self.db_functions.make_query(query, params)
         except Exception as err:
-            results = str(err)
+            raise ValueError(err)
 
         return results
 
@@ -276,8 +333,11 @@ class KoaRtiApi:
         :return:
         """
         query = f"UPDATE koa_status SET {self.params.columns}=%s "
-        query += f"WHERE {self.params.key}=%s AND level=0;"
+        query += f"WHERE {self.params.key}=%s"
         params = (self.params.update_val, self.search_val)
+
+        if self.params.add:
+            query += f'AND {self.params.add}'
 
         try:
             self.db_functions.make_query(query, params)
@@ -425,9 +485,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('creation_time', 'process_end_time')
+        stats, sums = self._get_time_diff('creation_time', 'process_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsTRANSFER(self):
         """
@@ -435,9 +495,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('xfr_start_time', 'xfr_end_time')
+        stats, sums = self._get_time_diff('xfr_start_time', 'xfr_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsINGEST(self):
         """
@@ -445,9 +505,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('ingest_start_time', 'ingest_end_time')
+        stats, sums = self._get_time_diff('ingest_start_time', 'ingest_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsCOPYINGEST(self):
         """
@@ -455,9 +515,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('ingest_copy_start_time', 'ingest_copy_end_time')
+        stats, sums = self._get_time_diff('ingest_copy_start_time', 'ingest_copy_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsTOTAL(self):
         """
@@ -465,10 +525,17 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('creation_time', 'ingest_end_time')
+        stats, sums = self._get_time_diff('creation_time', 'ingest_end_time')
 
-        return stats
-    
+        return stats, sums
+
+    # add to DATA
+    # file size:
+    # filesize_mb | archsize_mb |
+    # "level" (0, 1, 2)
+    # Add to metadata
+    # sum of all times from data
+    # sum of all size from data
 
     """  ------------  metrics Plots section    ------------  """
     
@@ -587,19 +654,62 @@ class KoaRtiApi:
         :return: [{koaid, instrument, TIMEDIFF}]
         """
         tm_diff_str = f'TIMEDIFF({end_key}, {start_key})'
-        fields =f'koaid, instrument, {tm_diff_str}'
-        query, params = self._generic_query(key=fields, table=table)
-        results = self.db_functions.make_query(query, params)
+        fields =f'koaid, instrument, level, filesize_mb, archsize_mb, {tm_diff_str}'
+
+        results = self._metrics_results(fields, table)
+        sums = {'total_time': 0, 'total_filesize': 0.0, 'total_arch_size': 0.0}
 
         cln_results = []
         for result in results:
-            if not all(result.values()):
+            try:
+                seconds = result[tm_diff_str].total_seconds()
+                if seconds < 0:
+                    continue
+            except Exception:
                 continue
-            cln_results.append({'koaid': result['koaid'],
-                                'instrument': result['instrument'],
-                                'seconds': result[tm_diff_str].total_seconds()})
 
-        return cln_results
+            sums = self._metrics_sums(sums, result, seconds)
+
+            cln_results.append(
+                {'koaid': result.get('koaid', ''),
+                 'instrument': result.get('instrument', ''),
+                 'level': result.get('level', ''),
+                 'file_size_mb': result.get('filesize_mb', ''),
+                 'archive_size_mb': result.get('archsize_mb', ''),
+                 'seconds': seconds}
+            )
+
+
+        return cln_results, sums
+
+    def _metrics_results(self, fields, table):
+        results = []
+
+        # level can be 0
+        if not self.params.level:
+            query, params = self._generic_query(key=fields, table=table)
+            results = self.db_functions.make_query(query, params)
+
+        if self.params.level in [None, 1, 2]:
+            if not self.params.level:
+                levels = [1,2]
+            else:
+                levels = [self.params.level]
+            for level in levels:
+                results += self.searchLEV1(columns=fields, level=level)
+
+        return results
+
+    def _metrics_sums(self, sums, result, seconds):
+        sums['total_time'] += seconds
+        filesize = result.get('filesize_mb', 0.0)
+        if filesize:
+            sums['total_filesize'] += filesize
+        archive_size = result.get('archsize_mb', 0.0)
+        if archive_size:
+            sums['total_arch_size'] += archive_size
+
+        return sums
 
     def _calc_time_length(self, start_key, end_key):
         """
@@ -607,8 +717,8 @@ class KoaRtiApi:
 
         :return: (dict/dict/sum)
         """
-        results = self._get_time_diff(start_key, end_key)
         stats = {}
+        results, sums = self._get_time_diff(start_key, end_key)
 
         for result in results:
             inst = result['instrument']
@@ -648,7 +758,7 @@ class KoaRtiApi:
                 add_str = " AND "
 
         if add:
-            query += f" {add} "
+            query += f" {add_str} {add} "
 
         query, params = self._add_general_query(query, params, add_str)
 

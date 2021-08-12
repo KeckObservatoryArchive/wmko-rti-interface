@@ -54,7 +54,10 @@ def tpx_rti_api():
     API_INSTANCE = rti_api
 
     results = api_results(API_INSTANCE)
-    if not results['data']:
+    if var_get.data == 0:
+        del results['data']
+
+    elif not results['data']:
         help_str = f"No Results for query parameters:<BR><BR> {var_get}<BR>"
         help_str += get_api_help_string(API_INSTANCE)
         return help_str
