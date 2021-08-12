@@ -74,7 +74,7 @@ class KoaPiNotify:
         """
 
         #db init (assuming relative location to config)
-        self.dbname = 'koa_test' if self.dev else 'koa'
+        self.dbname = 'koa'
         self.db = db_conn.db_conn('config.live.ini')
 
         #We are only dealing with level 0 for now
