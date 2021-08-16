@@ -53,14 +53,14 @@ def tpx_rti_api():
     rti_api = KoaRtiApi(var_get)
     API_INSTANCE = rti_api
 
-    results = api_results(API_INSTANCE)
-    if var_get.data == 0:
-        del results['data']
-
-    elif not results['data']:
+    if not var_get.search and not var_get.metrics and not var_get.update:
         help_str = f"No Results for query parameters:<BR><BR> {var_get}<BR>"
         help_str += get_api_help_string(API_INSTANCE)
         return help_str
+
+    results = api_results(API_INSTANCE)
+    if var_get.data == 0:
+        del results['data']
 
     return jsonify(results)
 

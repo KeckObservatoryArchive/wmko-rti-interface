@@ -63,6 +63,8 @@
         <option value="3" {% if params.plot == 3 %}
                 selected="selected" {% endif %}>Ingest</option>
         <option value="4" {% if params.plot == 4 %}
+                selected="selected" {% endif %}>DRP</option>
+        <option value="5" {% if params.plot == 5 %}
                 selected="selected" {% endif %}>All</option>
     </select>
     </div>
@@ -86,6 +88,19 @@
     <td width="25%" nowrap="">Inst
         <select class="sel_style"id="inst" name="inst">
         </select>
+    </td>
+    </div>
+
+    <div id="level_opts"  style="display: inline">
+    <!-- select instrument for database query -->
+    <td width="25%" nowrap="">Level
+        <select class="sel_style"id="level" name="level" size="1">
+        <option value="All" selected="selected">All</option>
+        <option value="0" {% if params.level == 0 %}
+        selected="selected"{% endif %}>Level 0</option>
+        <option value="1" {% if params.level == 1 %}
+        selected="selected"{% endif %}>Level 1</option>
+    </select>
     </td>
     </div>
 

@@ -112,7 +112,7 @@ class TimeBarPlot(PlotBase):
 
 class OverlayTimePlot(PlotBase):
 
-    def __init__(self, results, title):
+    def __init__(self, results, title, xrange=240):
         """
         Plot with all integer values between 0 and the largest time value
         in the results.
@@ -124,7 +124,7 @@ class OverlayTimePlot(PlotBase):
         self.data = {}
         self.results = results
         self.title = title
-        self.max_xrange = 240
+        self.max_xrange = xrange
         self.last_val = 0
 
         self.insts = list(results.keys())

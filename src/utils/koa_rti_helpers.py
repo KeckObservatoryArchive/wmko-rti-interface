@@ -127,6 +127,7 @@ def replace_datetime(results):
 
 def get_api_help_string(api_instance):
     search_list = []
+    fsearch_list = []
     update_list = []
     metrics_list = []
 
@@ -151,17 +152,20 @@ def get_api_help_string(api_instance):
     help_str += f"<li>update={update_list}<BR>"
 
     help_str += f"<BR>"
-    help_str += "<li>columns=column1,column2,...,  columns to return"
     help_str += "<li>key=key,  search key"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
     help_str += "<li>month=MM (integer month)"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"
-    help_str += "<li>limit=###,  the number of results to limit the search"
     help_str += "<li>inst=inst-name,  the instrument to limit the search"
     help_str += "<li>tel=#,  the number (1,2) of the telescope to limit the search"
+    help_str += "<li>obsid=####,  Observer ID"
+    help_str += "<li>progid=KNYYYY[A/B]_###,  Program ID"
+    help_str += "<li>level=#,  the data processing level (0,1,2)"
+    help_str += "<li>limit=###,  the number of results to limit the search"
     help_str += "<li>add=string to add to end of query"
-
+    help_str += "<li>plot=#,  the bokeh plot to return [1-5]"
+    help_str += "<li>columns=column1,column2,...,  columns to return"
     help_str += "<BR><BR>Example: <BR><UL>"
     help_str += "<li>/koarti_api?search=GENERAL&val=TRANSFERRED&"
     help_str += "columns=koaid,status,ofname,stage_file,archive_dir,ofname_deleted"
@@ -272,8 +276,7 @@ def api_results(API_INSTANCE):
     if not API_INSTANCE:
         return None
 
-    rti_api = API_INSTANCE
-    params = rti_api.get_params()
+    params = API_INSTANCE.get_params()
     results = None
     cmd = None
 
@@ -289,11 +292,11 @@ def api_results(API_INSTANCE):
     if cmd:
         try:
             if cmd_type == 'metrics':
-                results, sums = getattr(rti_api, cmd_type + cmd)()
+                results, sums = getattr(API_INSTANCE, cmd_type + cmd)()
             else:
-                results = getattr(rti_api, cmd_type + cmd)()
+                results = getattr(API_INSTANCE, cmd_type + cmd)()
         except (AttributeError, ValueError) as err:
-            return return_results(success=0, msg=err)
+            return return_results(success=0, msg=str(err))
 
         results = replace_datetime(results)
 
@@ -301,10 +304,10 @@ def api_results(API_INSTANCE):
                               api=API_INSTANCE)
 
     if cmd_type == 'metrics':
-        return {**response, **sums}
+        response['sums'] = sums
+        # return {**response, **sums}
 
     return response
-
 
 
 def get_results(API_INSTANCE):
@@ -317,26 +320,28 @@ def get_results(API_INSTANCE):
     if not API_INSTANCE:
         return None, None
 
-    rti_api = API_INSTANCE
-    params = rti_api.get_params()
+    params = API_INSTANCE.get_params()
 
     if not params.page or params.page == 'daily':
+
         if params.search:
             cmd = 'search' + params.search.upper().replace('_', '')
             try:
-                results = getattr(rti_api, cmd)()
+                results = getattr(API_INSTANCE, cmd)()
             except ValueError as err:
-                return return_results(success=0, msg=err)
+                return return_results(success=0, msg=str(err))
             except AttributeError as err:
-                results = rti_api.searchDATE()
+                results = API_INSTANCE.searchDATE()
         else:
-            results = rti_api.searchDATE()
+            results = API_INSTANCE.searchDATE()
 
         results = parse_results(results)
+    elif params.page == 'monthly':
+        results = API_INSTANCE.monthly_results()
     else:
-        results = rti_api.monthly_results()
+        results = []
 
-    db_columns = rti_api.getDbColumns()
+    db_columns = API_INSTANCE.getDbColumns()
     results = replace_datetime(results)
 
     return results, db_columns
@@ -371,23 +376,13 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
         ut_start = None
         ut_end = None
 
-    if results:
-        nfiles = len(results)
-    else:
-        nfiles = 0
+    nfiles = 0
+    for lev_results in results.values():
+        nfiles += len(lev_results)
 
     return {'success': success, 'msg': msg, 'apiStatus': api_status,
             'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
             'num_files': nfiles, cmd_type: cmd, 'data': results}
-
-
-# def return_metrics_results(response, sums):
-#
-#     respo
-#     response['sum_time'] = None
-#     response['sum_size'] = None
-#
-#     return response
 
 
 def parse_request(default_utd=True, method='GET'):
@@ -436,6 +431,9 @@ def parse_request(default_utd=True, method='GET'):
 
     if not vars['page']:
         vars['page'] = 'daily'
+
+    if vars['level'] and type(vars['level']) != int and vars['level'].lower() == 'all':
+        vars['level'] = None
 
     # set defaults
     if not request.args.get('posted'):
