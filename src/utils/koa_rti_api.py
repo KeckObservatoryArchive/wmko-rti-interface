@@ -674,8 +674,6 @@ class KoaRtiApi:
             for result in results:
                 try:
                     seconds = result[tdiff_str].total_seconds()
-                    if seconds > 1000:
-                        print(result['koaid'], seconds)
                     if seconds < 0:
                         continue
                 except Exception:

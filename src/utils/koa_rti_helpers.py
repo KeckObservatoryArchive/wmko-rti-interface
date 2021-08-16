@@ -127,7 +127,6 @@ def replace_datetime(results):
 
 def get_api_help_string(api_instance):
     search_list = []
-    fsearch_list = []
     update_list = []
     metrics_list = []
 
@@ -137,7 +136,7 @@ def get_api_help_string(api_instance):
             continue
 
         if 'search' in attribute:
-            query_name = attribute.split('search')[1]
+            query_name = attribute.split('searc h')[1]
             search_list.append(query_name)
         elif 'update' in attribute:
             query_name = attribute.split('update')[1]
@@ -155,14 +154,16 @@ def get_api_help_string(api_instance):
     help_str += "<li>key=key,  search key"
     help_str += "<li>val=value to match search,  LastEntry does use value.<BR>"
     help_str += "<li>month=MM (integer month)"
+    help_str += "<li>year=YYYY (integer month)"
     help_str += "<li>utd=YYYY-MM-DD"
     help_str += "<li>utd2=YYYY-MM-DD,  search for a date range"
     help_str += "<li>inst=inst-name,  the instrument to limit the search"
     help_str += "<li>tel=#,  the number (1,2) of the telescope to limit the search"
-    help_str += "<li>obsid=####,  Observer ID"
-    help_str += "<li>progid=KNYYYY[A/B]_###,  Program ID"
+    help_str += "<li>obsid=####,  Observer ID (PYKOA only)"
+    help_str += "<li>progid=KNYYYY[A/B]_###,  Program ID (PYKOA only)"
     help_str += "<li>level=#,  the data processing level (0,1,2)"
     help_str += "<li>limit=###,  the number of results to limit the search"
+    help_str += "<li>data=[0 or 1], toggle the return of data array.  default=1"
     help_str += "<li>add=string to add to end of query"
     help_str += "<li>plot=#,  the bokeh plot to return [1-5]"
     help_str += "<li>columns=column1,column2,...,  columns to return"
@@ -188,8 +189,8 @@ def parse_results(results):
     """
     if not results:
         return None
-    for i in range(0, len(results)):
-        res = results[i]
+
+    for i, res in enumerate(results):
         res['stage_dir'], res['filename'] = parse_filename_dir(res)
         results[i] = res
 

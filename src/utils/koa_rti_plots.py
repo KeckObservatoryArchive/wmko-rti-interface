@@ -1,9 +1,9 @@
+from datetime import timedelta
+
 from bokeh.models import ColumnDataSource, FactorRange
 from bokeh.transform import factor_cmap
-from bokeh.plotting import figure
 from bokeh.palettes import Category10, Category20
 
-from bokeh.io import output_file, show
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure
 from bokeh.transform import dodge
