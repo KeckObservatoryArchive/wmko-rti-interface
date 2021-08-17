@@ -271,7 +271,7 @@ def api_results(API_INSTANCE):
     cmd = None
 
     # find if one of the cmds was defined.
-    cmd_types = ['metrics', 'search', 'update', 'pykoa']
+    cmd_types = ('metrics', 'search', 'update', 'pykoa')
     for cmd_type in cmd_types:
         cmd_attr = getattr(params, cmd_type)
         if cmd_attr:
@@ -440,7 +440,7 @@ def parse_request(default_utd=True, method='GET'):
 
     if method == 'GET':
         vars = dict((name, request.args.get(name)) for name in args)
-    elif method in ['PUT', 'POST']:
+    elif method in {'PUT', 'POST'}:
         vars = dict((name, request.json.get(name)) for name in args)
     else:
         return

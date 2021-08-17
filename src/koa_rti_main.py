@@ -12,9 +12,9 @@ from flask_cors import CORS
 
 from ingest_api.ingest_api import ingest_api_get
 from utils.koa_rti_api import KoaRtiApi
-from utils.koa_rti_helpers import get_api_help_string, InstrumentReport, year_range
+from utils.koa_rti_helpers import get_api_help_string, InstrumentReport
 from utils.koa_rti_helpers import parse_request, parse_results, parse_args
-from utils.koa_rti_helpers import api_results, get_results
+from utils.koa_rti_helpers import api_results, get_results, year_range
 from utils.koa_tpx_gui import tpx_gui
 
 
@@ -87,7 +87,7 @@ def tpx_rti_page():
     elif var_get.page == 'stats':
         page_name = "rti_metrics.html"
         results = rti_api.getPlots()
-    elif var_get.page in ['koatpx', 'koadrp']:
+    elif var_get.page in {'koatpx', 'koadrp'}:
         page_name = "tpx_gui.html"
         results, db_columns = tpx_gui(var_get.page, API_INSTANCE)
     else:

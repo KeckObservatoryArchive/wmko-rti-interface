@@ -697,7 +697,7 @@ class KoaRtiApi:
             query, params = self._generic_query(key=fields, table=table)
             results['lev0'] = self.db_functions.make_query(query, params)
 
-        if self.params.level in [None, 1]:
+        if self.params.level in {None, 1}:
             results['lev1'] = self.searchLEV1(columns=fields)
 
         return results
