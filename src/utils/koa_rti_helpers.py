@@ -343,7 +343,7 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
     Return the results.  If json,  the results are a dictionary of
     success,  data (the database query results), and any error messages.
 
-    :param results: <str> the results,  either a json formatted string or
+    :param results: the results,  either a json formatted string or
                           a string of the database query results.
     :param success: <int> 1 for success, 0 for error
     :param cmd: <str> The command called by the observer
@@ -366,6 +366,22 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
         ut_start = None
         ut_end = None
 
+    nfiles = get_number_files(results)
+
+    return {'success': success, 'msg': msg, 'apiStatus': api_status,
+            'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
+            'num_files': nfiles, cmd_type: cmd, 'data': results}
+
+
+def get_number_files(results):
+    """
+    Determine the number of files in the results.  If both lev0 and lev1 are in
+    the results,  return the results as a dictionary.
+
+    :param results: The database query results.
+
+    :return: The number of files in the results
+    """
     if results:
         if type(results) == dict:
             nfiles = {}
@@ -376,10 +392,7 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
     else:
         nfiles = 0
 
-    return {'success': success, 'msg': msg, 'apiStatus': api_status,
-            'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
-            'num_files': nfiles, cmd_type: cmd, 'data': results}
-
+    return nfiles
 
 def parse_request(default_utd=True, method='GET'):
     """

@@ -279,6 +279,9 @@ class KoaRtiApi:
         return results
 
     def _add_koaid_daterange(self, query, val, add_str):
+        if not self.utd:
+            return query
+
         utd2 = self.params.utd2
         if self.utd and not utd2:
             utd2 = self.utd
