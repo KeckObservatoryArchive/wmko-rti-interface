@@ -270,39 +270,60 @@ def api_results(API_INSTANCE):
     results = None
     cmd = None
 
+    # find if one of the cmds was defined.
     cmd_types = ['metrics', 'search', 'update', 'pykoa']
     for cmd_type in cmd_types:
-        if getattr(params, cmd_type):
-            cmd = getattr(params, cmd_type).upper().replace('_', '')
+        cmd_attr = getattr(params, cmd_type)
+        if cmd_attr:
+            cmd = cmd_attr.upper().replace('_', '')
             break
 
         if cmd_type == 'pykoa' and not params.progid:
             return return_results(success=0, msg="use: progid=####")
 
+    sums = None
     if cmd:
-        try:
-            if cmd_type == 'metrics':
-                results, sums = getattr(API_INSTANCE, cmd_type + cmd)()
-            else:
-                results = getattr(API_INSTANCE, cmd_type + cmd)()
-        except (AttributeError, ValueError) as err:
-            return return_results(success=0, msg=str(err))
-
-        results = replace_datetime(results)
+        results, sums = get_cmd_results(API_INSTANCE, cmd, cmd_type, sums)
 
     response = return_results(results=results, cmd=cmd, cmd_type=cmd_type,
                               api=API_INSTANCE)
 
     if cmd_type == 'metrics':
         response['sums'] = sums
-        # return {**response, **sums}
 
     return response
 
 
+def get_cmd_results(API_INSTANCE, cmd, cmd_type, sums):
+    """
+    return the results given the cmd and the cmd type.
+
+    :param API_INSTANCE: The instance of the API.
+    :param cmd: <str> the string associated to the API command.
+    :param cmd_type: <str> the kind of command for the API.
+    :param sums: <object> the sum object that is calculated.
+
+    :return: The database results,  the sum dictionary
+    """
+    try:
+        if cmd_type == 'metrics':
+            results, sums = getattr(API_INSTANCE, cmd_type + cmd)()
+        else:
+            results = getattr(API_INSTANCE, cmd_type + cmd)()
+    except (AttributeError, ValueError) as err:
+        return return_results(success=0, msg=str(err))
+
+    results = replace_datetime(results)
+
+    return results, sums
+
+
 def get_results(API_INSTANCE):
     """
-    The results from querying the database.
+    The results from querying the database -- used by the update function for
+    the GUI.  Not needed when not using the GUI.
+
+    :param API_INSTANCE: The instance of the API.
 
     :return: (list/dict, list) the database query results,  the keys/columns of
                                the query.
@@ -313,19 +334,7 @@ def get_results(API_INSTANCE):
     params = API_INSTANCE.get_params()
 
     if not params.page or params.page == 'daily':
-
-        if params.search:
-            cmd = 'search' + params.search.upper().replace('_', '')
-            try:
-                results = getattr(API_INSTANCE, cmd)()
-            except ValueError as err:
-                return return_results(success=0, msg=str(err))
-            except AttributeError as err:
-                results = API_INSTANCE.searchDATE()
-        else:
-            results = API_INSTANCE.searchDATE()
-
-        results = parse_results(results)
+        results = update_search_page(API_INSTANCE, params)
     elif params.page == 'monthly':
         results = API_INSTANCE.monthly_results()
     else:
@@ -336,6 +345,29 @@ def get_results(API_INSTANCE):
 
     return results, db_columns
 
+
+def update_search_page(API_INSTANCE, params):
+    """
+    Used to update the daily page or search results.
+
+    :param API_INSTANCE: The instance of the API.
+    :param params: <named tuple> the request parameters
+    :return:
+    """
+    if params.search:
+        cmd = 'search' + params.search.upper().replace('_', '')
+        try:
+            results = getattr(API_INSTANCE, cmd)()
+        except ValueError as err:
+            return return_results(success=0, msg=str(err))
+        except AttributeError:
+            results = API_INSTANCE.searchDATE()
+    else:
+        results = API_INSTANCE.searchDATE()
+
+    results = parse_results(results)
+
+    return results
 
 def return_results(success=1, results=None, cmd=None, cmd_type='command',
                    msg=None, api=None):
@@ -394,6 +426,7 @@ def get_number_files(results):
 
     return nfiles
 
+
 def parse_request(default_utd=True, method='GET'):
     """
     Parse the url for the variable values,  set defaults
@@ -421,7 +454,7 @@ def parse_request(default_utd=True, method='GET'):
             except ValueError:
                 pass
 
-        if not vars[key] and key in ['tel', 'view']:
+        if not vars[key] and key in {'tel', 'view'}:
             vars[key] = 0
 
     if not vars['utd'] and default_utd or not vars['utd'] and vars['metrics']:
@@ -431,7 +464,6 @@ def parse_request(default_utd=True, method='GET'):
             first_last = calendar.monthrange(vars['yr'], vars['month'])
             vars['utd'] = f"{vars['yr']}-{vars['month']:0>2}-01"
             vars['utd2'] = f"{vars['yr']}-{vars['month']:0>2}-{first_last[1]}"
-
         else:
             vars['utd'] = datetime.utcnow().strftime("%Y-%m-%d")
 
