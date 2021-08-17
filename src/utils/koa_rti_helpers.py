@@ -366,14 +366,15 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
         ut_start = None
         ut_end = None
 
-    nfiles = 0
     if results:
         if type(results) == dict:
-            for lev_results in results.values():
-                nfiles += len(lev_results)
+            nfiles = {}
+            for key, lev_results in results.items():
+                nfiles[key] = len(lev_results)
         else:
             nfiles = len(results)
-
+    else:
+        nfiles = 0
 
     return {'success': success, 'msg': msg, 'apiStatus': api_status,
             'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
