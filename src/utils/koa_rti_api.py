@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import os
 from os import stat
 
-from utils.koa_rti_helpers import grab_value, query_prefix, date_iter
+from utils.koa_rti_helpers import query_prefix, date_iter
 from utils.koa_rti_pykoa import PyKoaApi
 from utils.koa_rti_db import DatabaseInteraction
 from utils.koa_rti_plots import TimeBarPlot, OverlayTimePlot
@@ -187,18 +187,18 @@ class KoaRtiApi:
         results = self.db_functions.make_query(query, params)
 
         for i, result in enumerate(results):
-            result['last_mod'] = grab_value(result, 'last_mod')
+            result['last_mod'] = result.get('last_mod', None)
             result['header_keyword'] = self.search_val
 
-            header = grab_value(result, 'header')
+            header = result.get('header', None)
+            result['header_value'] = None
+            result['header_comment'] = None
             if header:
                 head_dict = json.loads(header)
-                head_vals = grab_value(head_dict, self.search_val)
-                result['header_value'] = grab_value(head_vals, 'value')
-                result['header_comment'] = grab_value(head_vals, 'comment')
-            else:
-                result['header_value'] = None
-                result['header_comment'] = None
+                head_vals = head_dict.get(self.search_val, None)
+                if head_vals:
+                    result['header_value'] = head_vals.get('value', None)
+                    result['header_comment'] = head_vals.get('comment', None)
 
             result['header'] = None
             results[i] = result

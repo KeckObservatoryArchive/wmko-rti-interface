@@ -136,7 +136,7 @@ def get_api_help_string(api_instance):
             continue
 
         if 'search' in attribute:
-            query_name = attribute.split('searc h')[1]
+            query_name = attribute.split('search')[1]
             search_list.append(query_name)
         elif 'update' in attribute:
             query_name = attribute.split('update')[1]
@@ -198,34 +198,23 @@ def parse_results(results):
 
 
 def parse_filename_dir(result):
-    fullpath = grab_value(result, 'ofname')
+    """
+    Get the path and filename from the OFNAME DB column
+
+    :param result: <dict> one line query result.
+
+    :return: <str, str> path, filename
+    """
+    fullpath = result.get('ofname', None)
     if not fullpath:
         return '', ''
 
-    split_path = fullpath.rsplit('/',1)
+    split_path = fullpath.rsplit('/', 1)
 
     if len(split_path) > 1:
         return split_path[0], split_path[1]
     else:
         return split_path[0], ''
-
-
-def grab_value(result_dict, key_name):
-    """
-    Use to avoid an error while accessing a key that does not exist.
-
-    :param result_dict: (dict) dictionary to check
-    :param key_name: (str) key name
-
-    :return: dictionary value
-    """
-    if not result_dict:
-        return None
-
-    if key_name in result_dict:
-        return result_dict[key_name]
-
-    return None
 
 
 def query_prefix(columns=None, key=None, val=None, table='koa_status'):
@@ -378,8 +367,13 @@ def return_results(success=1, results=None, cmd=None, cmd_type='command',
         ut_end = None
 
     nfiles = 0
-    for lev_results in results.values():
-        nfiles += len(lev_results)
+    if results:
+        if type(results) == dict:
+            for lev_results in results.values():
+                nfiles += len(lev_results)
+        else:
+            nfiles = len(results)
+
 
     return {'success': success, 'msg': msg, 'apiStatus': api_status,
             'timestamp': now, 'ut_start': ut_start, 'ut_end': ut_end,
