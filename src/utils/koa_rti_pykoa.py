@@ -17,7 +17,6 @@ class PyKoaApi:
         if not pykoa_results:
             return pykoa_results
 
-        # imgtype = flatlamp, focus, arclamp, object
         new_res = []
         lens = []
         for key in pykoa_results.keys():
@@ -36,8 +35,6 @@ class PyKoaApi:
         url = 'https://www.keck.hawaii.edu/software/db_api/telSchedule.php'
         url += f'?cmd=getScheduleByUser&obsid={obsid}&type=pi'
 
-        print(f"{url}")
-
         response = requests.get(url)
         results = response.content
         try:
@@ -48,7 +45,6 @@ class PyKoaApi:
         return
 
     def progid_results(self, progid):
-        print(progid)
         pykoa_results = json.loads(self.query_by_semid(progid, 'hires'))
         if not pykoa_results:
             return pykoa_results
@@ -84,17 +80,11 @@ class PyKoaApi:
             if inst not in supported_insts:
                 continue
             semid = f"{(rslt['Semester']).upper()}_{(rslt['ProjCode']).upper()}"
-            print(rslt['ProjCode'])
 
             pykoa_results.append(json.loads(self.query_by_semid(semid, inst)))
 
         return pykoa_results
 
-     # semid = 2018A_C307
-    # out = '/usr/local/home/koarti/lfuhrman/PyKOA/outputOS/tmp.tbl'
-    # query = f"select koaid, filehand, progid, semid, imagetyp from koa_{inst} where (progid='C307')"
-    # Koa.query_adql(query, out, server=serv, overwrite=True, format='ipac')
-    # rec = Table.read(out, format='ascii.ipac')
 
     def query_by_semid(self, progid, inst):
         """
@@ -108,16 +98,10 @@ class PyKoaApi:
 
         #TODO I believe this has to be old data because it is public?
         inst='hires'
-        # currently only for HIRES and DEIMOS
-        # query = f"select koaid, filehand, obstype, outdir " \
         query = f"select date_ut, koaid, instrume,  ra, dec, equinox, airmass, obstype " \
                 f"from koa_{inst} where (progid='N049')"
-                # f"from koa_{inst} where (semid='{semid}')"
-        # 2021B_N057
-        Koa.query_adql(query, out, server=test, overwrite=True, format='ipac')
-        # Koa.query_adql(query, out, server=serv, overwrite=True, format='ipac')
 
-        print(query)
+        Koa.query_adql(query, out, server=test, overwrite=True, format='ipac')
 
         # <class 'astropy.table.table.Table'>
         ap_table = Table.read(out, format='ascii.ipac')
@@ -125,15 +109,3 @@ class PyKoaApi:
         json_table = pd.to_json()
 
         return json_table
-
-#      rec.colnames -- list of col names
-#      t['progid'][0]
-# for i in range(0,len(t)):
-#     print(t[i]['filehand'])
-
-# x = rec.to_pandas()
-# json_table = x.to_json()
-# json_t = json.loads(json_table)
-# koaid = json_t['koaid']
-# >>> koaid['0']
-# 'HI.20180331.02525.fits'

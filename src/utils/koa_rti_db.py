@@ -22,7 +22,7 @@ class DatabaseInteraction:
     def connect_db(self, db_name, second_try=False):
         conn = self.conn_obj.connect(db_name)
         if not conn:
-            print("ought oh!")
+            print(f"CANNOT Connect to DataBase: {db_name}")
         try:
             curse = conn.cursor(pymysql.cursors.DictCursor)
         except:

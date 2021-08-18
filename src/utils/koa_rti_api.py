@@ -1,10 +1,10 @@
 import json
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from os import stat
 
-from utils.koa_rti_helpers import grab_value, query_prefix, date_iter
+from utils.koa_rti_helpers import query_prefix, date_iter
 from utils.koa_rti_pykoa import PyKoaApi
 from utils.koa_rti_db import DatabaseInteraction
 from utils.koa_rti_plots import TimeBarPlot, OverlayTimePlot
@@ -187,18 +187,18 @@ class KoaRtiApi:
         results = self.db_functions.make_query(query, params)
 
         for i, result in enumerate(results):
-            result['last_mod'] = grab_value(result, 'last_mod')
+            result['last_mod'] = result.get('last_mod', None)
             result['header_keyword'] = self.search_val
 
-            header = grab_value(result, 'header')
+            header = result.get('header', None)
+            result['header_value'] = None
+            result['header_comment'] = None
             if header:
                 head_dict = json.loads(header)
-                head_vals = grab_value(head_dict, self.search_val)
-                result['header_value'] = grab_value(head_vals, 'value')
-                result['header_comment'] = grab_value(head_vals, 'comment')
-            else:
-                result['header_value'] = None
-                result['header_comment'] = None
+                head_vals = head_dict.get(self.search_val, None)
+                if head_vals:
+                    result['header_value'] = head_vals.get('value', None)
+                    result['header_comment'] = head_vals.get('comment', None)
 
             result['header'] = None
             results[i] = result
@@ -255,16 +255,70 @@ class KoaRtiApi:
 
         return results
 
+    def searchLEV1(self, columns=None):
+        """
+        Search for lev1 (DRP) files.
+
+        :return: [{results}] array of DB search results
+        """
+        if not columns:
+            columns = self.params.columns
+        query, params, add_str = query_prefix(
+            columns, self.params.key, self.params.val)
+
+        query += f" {add_str} LEVEL=1 "
+        add_str = "AND"
+
+        if self.params.add:
+            query += f" {add_str} {self.params.add} "
+            add_str = "AND"
+
+        query = self._add_koaid_daterange(query, 'koaid', add_str)
+        results = self._lev1_query(query, params)
+
+        return results
+
+    def _add_koaid_daterange(self, query, val, add_str):
+        if not self.utd:
+            return query
+
+        utd2 = self.params.utd2
+        if self.utd and not utd2:
+            utd2 = self.utd
+
+        current_date = datetime.strptime(self.utd, '%Y-%m-%d')
+        end_date = datetime.strptime(utd2, '%Y-%m-%d')
+
+        date_str = current_date.strftime('%Y%m%d')
+        query += f" {add_str} ({val} LIKE {date_str}"
+
+
+        while current_date < end_date:
+            date_str = current_date.strftime('%Y%m%d')
+            current_date += timedelta(days=1)
+            query += f" OR {val} LIKE '%{date_str}%'"
+
+        query += ")"
+
+        return query
+
+    def _lev1_query(self, query, params):
+        try:
+            results = self.db_functions.make_query(query, params)
+        except Exception as err:
+            raise ValueError(err)
+
+        return results
+
     def searchGENERAL(self):
-        query, params = self._generic_query(columns=self.params.columns,
-                                            key=self.params.key,
-                                            val=self.search_val,
-                                            add=self.params.add)
+        query, params = self._generic_query(
+            columns=self.params.columns, key=self.params.key,
+            val=self.search_val, add=self.params.add)
 
         try:
             results = self.db_functions.make_query(query, params)
         except Exception as err:
-            results = str(err)
+            raise ValueError(err)
 
         return results
 
@@ -276,8 +330,11 @@ class KoaRtiApi:
         :return:
         """
         query = f"UPDATE koa_status SET {self.params.columns}=%s "
-        query += f"WHERE {self.params.key}=%s AND level=0;"
+        query += f"WHERE {self.params.key}=%s"
         params = (self.params.update_val, self.search_val)
+
+        if self.params.add:
+            query += f'AND {self.params.add}'
 
         try:
             self.db_functions.make_query(query, params)
@@ -342,8 +399,7 @@ class KoaRtiApi:
         return txt
 
 
-    # -- monthly view section ---
-
+    """  ------------  monthly view section  ------------  """
     def monthlyINST(self, day):
         """
         Determine the instruments used over the month.
@@ -412,11 +468,7 @@ class KoaRtiApi:
         return results
     
 
-    """  ------------  metrics API section    ------------  """
-    # | creation_time       | process_start_time  | process_end_time    | xfr_start_time
-    # | xfr_end_time        | ipac_notify_time    | ingest_start_time   | ingest_copy_start_time
-    # | ingest_copy_end_time | ingest_end_time     | ipac_response_time  | stage_time |
-
+    """  ------------  metrics API section  ------------  """
     def metricsPROCESS(self):
         """
         Find the the time difference between creation and process end.
@@ -425,9 +477,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('creation_time', 'process_end_time')
+        stats, sums = self._get_time_diff('creation_time', 'process_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsTRANSFER(self):
         """
@@ -435,9 +487,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('xfr_start_time', 'xfr_end_time')
+        stats, sums = self._get_time_diff('xfr_start_time', 'xfr_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsINGEST(self):
         """
@@ -445,9 +497,9 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('ingest_start_time', 'ingest_end_time')
+        stats, sums = self._get_time_diff('ingest_start_time', 'ingest_end_time')
 
-        return stats
+        return stats, sums
 
     def metricsCOPYINGEST(self):
         """
@@ -455,9 +507,20 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('ingest_copy_start_time', 'ingest_copy_end_time')
+        stats, sums = self._get_time_diff('ingest_copy_start_time', 'ingest_copy_end_time')
 
-        return stats
+        return stats, sums
+
+    def metricsDRP(self):
+        """
+        Find the time difference between the end of the KOA processing and the
+        end of the DRP processing.
+
+        :return:
+        """
+        stats, sums = self._get_time_diff('lev0.process_end_time', 'lev1.creation_time')
+
+        return stats, sums
 
     def metricsTOTAL(self):
         """
@@ -465,39 +528,42 @@ class KoaRtiApi:
 
         :return: [{koaid, instrument, seconds}]
         """
-        stats = self._get_time_diff('creation_time', 'ingest_end_time')
+        stats, sums = self._get_time_diff('creation_time', 'ingest_end_time')
 
-        return stats
-    
+        return stats, sums
 
-    """  ------------  metrics Plots section    ------------  """
-    
+    """  ------------  metrics Plots section  ------------  """
+    def statDrpTime(self):
+        stats = self._bin_time_length('lev0.process_end_time', 'lev1.creation_time')
+
+        plot_obj = OverlayTimePlot(stats, 'Processing Time', xrange=72000)
+
+        return plot_obj.get_plot()
+
     def statProcessTime(self):
-        stats = self._calc_time_length('creation_time', 'process_end_time')
+        stats = self._bin_time_length('creation_time', 'process_end_time')
 
         plot_obj = OverlayTimePlot(stats, 'Processing Time')
 
         return plot_obj.get_plot()
 
     def statTransferTime(self):
-        stats = self._calc_time_length('xfr_start_time', 'xfr_end_time')
+        stats = self._bin_time_length('xfr_start_time', 'xfr_end_time')
 
         plot_obj = OverlayTimePlot(stats, 'Transfer Time - Transfer Start to End')
 
         return plot_obj.get_plot()
 
     def statIngestTime(self):
-        stats = self._calc_time_length('ingest_start_time', 'ingest_end_time')
+        stats = self._bin_time_length('ingest_start_time', 'ingest_end_time')
 
         plot_obj = OverlayTimePlot(stats, 'Ingest Time')
 
         return plot_obj.get_plot()
 
     def statTotalTime(self):
-        stats = self._calc_time_length('creation_time', 'ingest_end_time')
-
+        stats = self._bin_time_length('creation_time', 'ingest_end_time')
         plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
-
         return plot_obj.get_plot()
 
     def getPlots(self):
@@ -510,13 +576,15 @@ class KoaRtiApi:
             results = {'plots': [self.statTransferTime()]}
         elif self.params.plot == 3:
             results = {'plots': [self.statIngestTime()]}
+        elif self.params.plot == 4:
+            results = {'plots': [self.statDrpTime()]}
         else:
             results = {'plots': [self.statTotalTime(), self.statProcessTime(),
                                  self.statTransferTime(), self.statIngestTime()]}
 
         return results
 
-    """  ------------  Helpers section    ------------  """
+    """  ------------  Helpers section  ------------  """
 
     def monthly_results(self):
         """
@@ -586,42 +654,104 @@ class KoaRtiApi:
         :param table: <str> The database table name.
         :return: [{koaid, instrument, TIMEDIFF}]
         """
-        tm_diff_str = f'TIMEDIFF({end_key}, {start_key})'
-        fields =f'koaid, instrument, {tm_diff_str}'
-        query, params = self._generic_query(key=fields, table=table)
-        results = self.db_functions.make_query(query, params)
+        sums = {}
+        cln_results = {}
 
-        cln_results = []
-        for result in results:
-            if not all(result.values()):
-                continue
-            cln_results.append({'koaid': result['koaid'],
-                                'instrument': result['instrument'],
-                                'seconds': result[tm_diff_str].total_seconds()})
+        if not start_key or not end_key:
+            return [], sums
 
-        return cln_results
+        unit = "SECOND"
+        tdiff_str = f"TIMEDIFF({end_key}, {start_key})"
+        if 'lev0' in start_key or 'lev0' in end_key:
+            results_dict = self._drp_results(tdiff_str, table)
+        else:
+            fields = f'koaid, instrument, level, filesize_mb, archsize_mb, {tdiff_str}'
+            results_dict = self._metrics_results(fields, table)
 
-    def _calc_time_length(self, start_key, end_key):
+        for level in results_dict.keys():
+            cln_results[level] = []
+            sums[level] = {'total_time_seconds': 0,
+                           'total_filesize': 0.0,
+                           'total_arch_size': 0.0}
+            results = results_dict[level]
+            for result in results:
+                try:
+                    seconds = result[tdiff_str].total_seconds()
+                    if seconds < 0:
+                        continue
+                except Exception:
+                    continue
+
+                sums[level] = self._metrics_sums(sums[level], result, seconds)
+                result['seconds'] = seconds
+                del result[tdiff_str]
+                cln_results[level].append(result)
+
+        return cln_results, sums
+
+    def _metrics_results(self, fields, table):
+        results = {}
+
+        # level can be 0
+        if not self.params.level:
+            query, params = self._generic_query(key=fields, table=table)
+            results['lev0'] = self.db_functions.make_query(query, params)
+
+        if self.params.level in {None, 1}:
+            results['lev1'] = self.searchLEV1(columns=fields)
+
+        return results
+
+    def _drp_results(self, tdiff, table):
+
+        results = {'DRP': []}
+
+        query = f"SELECT lev0.koaid, lev0.instrument, lev1.level, " \
+                f"lev0.filesize_mb, lev1.archsize_mb, {tdiff} " \
+                f"FROM {table} lev1, {table} lev0 " \
+                f"WHERE lev0.koaid=lev1.koaid AND lev0.level=0 AND lev1.level=1"
+
+        query = self._add_koaid_daterange(query, 'lev1.koaid', " AND ")
+
+        results['DRP'] = self.db_functions.make_query(query, ())
+
+        return results
+
+    def _metrics_sums(self, sums, result, seconds):
+        sums['total_time_seconds'] += seconds
+        filesize = result.get('filesize_mb', 0.0)
+        if filesize:
+            sums['total_filesize'] += filesize
+        archive_size = result.get('archsize_mb', 0.0)
+        if archive_size:
+            sums['total_arch_size'] += archive_size
+
+        return sums
+
+    def _bin_time_length(self, start_key, end_key):
         """
         Tally the number for each time bin.  ie, {DEIMOS : {'0:00:02: 42, ...}}
 
         :return: (dict/dict/sum)
         """
-        results = self._get_time_diff(start_key, end_key)
         stats = {}
+        results_dict, sums = self._get_time_diff(start_key, end_key)
 
-        for result in results:
-            inst = result['instrument']
-            tm = int(result['seconds'])
+        for level in results_dict.keys():
+            results = results_dict[level]
 
-            if inst in stats:
-                if tm in stats[inst]:
-                    stats[inst][tm] += 1
+            for result in results:
+                inst = f"{result['instrument']}_{level}"
+                tm = int(result['seconds'])
+
+                if inst in stats:
+                    if tm in stats[inst]:
+                        stats[inst][tm] += 1
+                    else:
+                        stats[inst][tm] = 1
                 else:
+                    stats[inst] = {}
                     stats[inst][tm] = 1
-            else:
-                stats[inst] = {}
-                stats[inst][tm] = 1
 
         return stats
 
@@ -648,7 +778,7 @@ class KoaRtiApi:
                 add_str = " AND "
 
         if add:
-            query += f" {add} "
+            query += f" {add_str} {add} "
 
         query, params = self._add_general_query(query, params, add_str)
 

@@ -1,9 +1,9 @@
+from datetime import timedelta
+
 from bokeh.models import ColumnDataSource, FactorRange
 from bokeh.transform import factor_cmap
-from bokeh.plotting import figure
 from bokeh.palettes import Category10, Category20
 
-from bokeh.io import output_file, show
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure
 from bokeh.transform import dodge
@@ -112,7 +112,7 @@ class TimeBarPlot(PlotBase):
 
 class OverlayTimePlot(PlotBase):
 
-    def __init__(self, results, title):
+    def __init__(self, results, title, xrange=240):
         """
         Plot with all integer values between 0 and the largest time value
         in the results.
@@ -124,7 +124,7 @@ class OverlayTimePlot(PlotBase):
         self.data = {}
         self.results = results
         self.title = title
-        self.max_xrange = 240
+        self.max_xrange = xrange
         self.last_val = 0
 
         self.insts = list(results.keys())
