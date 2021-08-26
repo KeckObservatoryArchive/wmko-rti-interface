@@ -45,7 +45,7 @@ log = logging.getLogger('wmko_rti_api')
 #module globals
 PROPOSALS_API = 'https://www.keck.hawaii.edu/software/db_api/proposalsAPI.php?'
 TELSCHED_API = 'https://www.keck.hawaii.edu/software/db_api/telSchedule.php?'
-MAX_OLD_DAYS = 3650
+MAX_OLD_DAYS = 7
 ADMIN_EMAIL = 'koaadmin@keck.hawaii.edu'
 DEV_EMAIL = 'koaadmin@keck.hawaii.edu'
 ALLOWED_LEVELS = [0]
