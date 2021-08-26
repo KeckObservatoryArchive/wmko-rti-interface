@@ -45,7 +45,7 @@ log = logging.getLogger('wmko_rti_api')
 #module globals
 PROPOSALS_API = 'https://www.keck.hawaii.edu/software/db_api/proposalsAPI.php?'
 TELSCHED_API = 'https://www.keck.hawaii.edu/software/db_api/telSchedule.php?'
-MAX_OLD_DAYS = 7
+MAX_OLD_DAYS = 3650
 ADMIN_EMAIL = 'koaadmin@keck.hawaii.edu'
 DEV_EMAIL = 'koaadmin@keck.hawaii.edu'
 ALLOWED_LEVELS = [0]
@@ -73,59 +73,87 @@ class KoaPiNotify:
         Returns True/False if PI was emailed
         """
 
-        #db init (assuming relative location to config)
+        # db init (assuming relative location to config)
         self.dbname = 'koa'
         self.db = db_conn.db_conn('config.live.ini')
 
-        #We are only dealing with level 0 for now
+        # We are only dealing with level 0 for now
         self.level = self.get_numerical_level(self.level)
         if self.level is False:
             return False, f"Could not parse ingest type to numerical level: {self.level}"
         if self.level not in ALLOWED_LEVELS:
             return False, f"ERROR: Level {self.level} not in allowed ingest types."
 
-        #Find koa_status record and get semid
-        #get utdate from koaid
+        # Find koa_status record and get semid
+        # get utdate from koaid
         self.semid = self.get_semid_from_db(self.koaid, self.instr, self.level)
         if not self.semid:
             return False, f"Could not lookup SEMID in koa_status for {self.koaid}"
 
-        #get utdate from koaid
+        # get utdate from koaid
         self.utdate = self.get_utdate_from_koaid(self.koaid)
         if self.utdate is False:
             return False, f"Could not parse KOAID {self.koaid}"
 
-        #todo: validate inputs
+        # todo: validate inputs
 
-        #Look for existing entry
+        # Look for existing entry
         if self.is_existing_entry(self.semid, self.instr, self.utdate, self.level):
             return False, f"Existing entry found for {self.semid}, {self.instr}, {self.level}"
 
-        #Make sure this utdate is not too old
+        # Make sure this utdate is not too old
         utdatets = dt.datetime.strptime(self.utdate, '%Y-%m-%d')
         diff = dt.datetime.now() - utdatets
         if diff.days > MAX_OLD_DAYS:
-           return False, f"ERROR: date {utdate} is more than {MAX_OLD_DAYS} days ago"
+            return False, f"ERROR: date {self.utdate} is more than " \
+                          f"{MAX_OLD_DAYS} days ago"
 
-        #Make sure this instrument and program were scheduled this day
+        # Make sure this instrument and program were scheduled this day
         if not self.is_scheduled(self.utdate, self.semid, self.instr):
-            return False, f'ERROR: Program {self.semid}, instrument {self.instr} was not scheduled on UT date {self.utdate}'
+            msg = f'ERROR: Program {self.semid}, instrument {self.instr} was ' \
+                  f'not scheduled on UT date {self.utdate}'
+            return False, msg
 
-        #get PI info, return if fail
+        # added to exclude files that did not complete ingest
+        if self.level == 0:
+            answer, msg = self._check_status_codes()
+            if not answer:
+                return False, msg
+
+        # get PI info, return if fail
         pi_email = self.get_pi_email(self.semid)
         if not pi_email:
-            return False, f"ERROR: Could not get PI info for {semid}"
+            return False, f"ERROR: Could not get PI info for {self.semid}"
 
-        #insert record and ensure it was successful before proceeding to email
-        res = self.insert_new_entry(self.semid, self.instr, self.utdate, self.level, pi_email)
+        # insert record and ensure it was successful before proceeding to email
+        res = self.insert_new_entry(self.semid, self.instr, self.utdate,
+                                    self.level, pi_email)
         if not res:
             return False, "Insert failed.  Not sending PI email."
 
-        #do email to PI
-        if not self.send_pi_email(pi_email, self.semid, self.instr, self.utdate, self.level):
+        # do email to PI
+        if not self.send_pi_email(pi_email, self.semid, self.instr,
+                                  self.utdate, self.level):
             return False, "Email to PI failed."
 
         return True, ''
+
+    def _check_status_codes(self):
+        query = (f"select utdatetime, status, status_code, status_code_ipac"
+                 f" from koa_status where koaid='{self.koaid}' "
+                 f"and instrument='{self.instr}' and level='{self.level}' ")
+
+        status_rows = self.db.query(self.dbname, query)
+        for row in status_rows:
+            if (row['status'] != 'COMPLETE' or row['status_code']
+                    or row['status_code_ipac']):
+                msg = f"New record has errors and not eligible for a PI Email." \
+                      f" The status: {row['status']}, status_code: " \
+                      f"{row['status_code']}, status_ipac: {row['status_code_ipac']}"
+
+                return False, msg
+
+        return True, None
 
     def get_numerical_level(self, level):
         level= level.replace('lev', '')

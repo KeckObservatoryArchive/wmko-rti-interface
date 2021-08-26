@@ -42,7 +42,6 @@ def set_utd(day, month, yr):
 
     :return: (str, int, int, int) utd YYYYMMDD, day, month, yr
     """
-
     if day and month and yr:
         day, month, yr = _check_input_dates(int(day), int(month), int(yr))
         if yr > 90:
