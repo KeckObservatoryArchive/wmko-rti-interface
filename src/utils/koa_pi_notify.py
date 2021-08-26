@@ -334,8 +334,8 @@ class KoaPiNotify:
         msg += f"Your {instr} data for\n\n";
         msg += f"Semester: {semester}\n";
         msg += f"Program: {progid}\n\n";
-        msg += f"is now being archived in real-time.  The proprietary period for your program, as approved by\n";
-        msg += f"your Selecting Official, is\n\n";
+        msg += f"is now being archived in real-time.  The proprietary period for your program,\n";
+        msg += f"as approved by your Selecting Official, is\n\n";
         if pp or instr != "HIRES":
             msg += f"{pp} months\n\n";
         else:
@@ -346,7 +346,7 @@ class KoaPiNotify:
         msg += f"KOA.  Policy details can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/KOA_data_policy.pdf.";
         msg += f"\n\n";
-        msg += f"If the proprietary period shown below is not what you expect, please\n";
+        msg += f"If the proprietary period shown above is not what you expect, please\n";
         msg += f"contact your current Selecting Official.  The most up-to-date list\n";
         msg += f"of Selecting Officials can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/soList.html\n\n";
