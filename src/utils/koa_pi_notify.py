@@ -40,16 +40,6 @@ from urllib.request import urlopen
 import logging
 log = logging.getLogger('wmko_rti_api')
 
-
-#TODO: Move this to main config file?
-#module globals
-PROPOSALS_API = 'https://www.keck.hawaii.edu/software/db_api/proposalsAPI.php?'
-TELSCHED_API = 'https://www.keck.hawaii.edu/software/db_api/telSchedule.php?'
-MAX_OLD_DAYS = 7
-ADMIN_EMAIL = 'koaadmin@keck.hawaii.edu'
-DEV_EMAIL = 'koaadmin@keck.hawaii.edu'
-ALLOWED_LEVELS = [0]
-
 #map any instrument names to base name for easy query searching (ie 'nirspec' should search on '%nirsp%')
 INSTR_BASE = {
     'NIRSPEC': 'NIRSP'
@@ -58,11 +48,19 @@ INSTR_BASE = {
 
 class KoaPiNotify:
 
-    def __init__(self, koaid, instr, level, dev=False):
+    def __init__(self, koaid, instr, level, config, dev=False):
         self.koaid = koaid
         self.instr = instr
         self.level = level
         self.dev = dev
+
+        self.proposal_api = config['PROPOSALS_API']
+        self.telsched_api = config['TELSCHED_API']
+        self.max_old_days = config['MAX_OLD_DAYS']
+        self.admin_email = config['ADMIN_EMAIL']
+        self.dev_email = config['DEV_EMAIL']
+        self.allowed_levels = config['ALLOWED_LEVELS']
+
         log.info(f"KoaPiNotify: {koaid}, {instr}, {level}, {dev}")
         print(f"KoaPiNotify: {koaid}, {instr}, {level}, {dev}")
 
@@ -81,7 +79,7 @@ class KoaPiNotify:
         self.level = self.get_numerical_level(self.level)
         if self.level is False:
             return False, f"Could not parse ingest type to numerical level: {self.level}"
-        if self.level not in ALLOWED_LEVELS:
+        if self.level not in self.allowed_levels:
             return False, f"ERROR: Level {self.level} not in allowed ingest types."
 
         # Find koa_status record and get semid
@@ -104,9 +102,9 @@ class KoaPiNotify:
         # Make sure this utdate is not too old
         utdatets = dt.datetime.strptime(self.utdate, '%Y-%m-%d')
         diff = dt.datetime.now() - utdatets
-        if diff.days > MAX_OLD_DAYS:
+        if diff.days > self.max_old_days:
             return False, f"ERROR: date {self.utdate} is more than " \
-                          f"{MAX_OLD_DAYS} days ago"
+                          f"{self.max_old_days} days ago"
 
         # Make sure this instrument and program were scheduled this day
         if not self.is_scheduled(self.utdate, self.semid, self.instr):
@@ -209,7 +207,7 @@ class KoaPiNotify:
 
 
     def get_pi_email(self, semid):
-        url = f'{PROPOSALS_API}ktn={semid}&cmd=getPIEmail'
+        url = f'{self.proposal_api}ktn={semid}&cmd=getPIEmail'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -222,7 +220,7 @@ class KoaPiNotify:
 
     def get_propint_data(self, semid):
 
-        url = f'{PROPOSALS_API}ktn={semid}&cmd=getApprovedPP'
+        url = f'{self.proposal_api}ktn={semid}&cmd=getApprovedPP'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -242,7 +240,7 @@ class KoaPiNotify:
 
         #check telschedule
         try:
-            url = f'{TELSCHED_API}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.telsched_api}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
@@ -252,7 +250,7 @@ class KoaPiNotify:
 
         #check ToO
         try:
-            url = f'{TELSCHED_API}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
@@ -265,7 +263,7 @@ class KoaPiNotify:
 
         #Twilight Method 1: check proposalsAPI.php?cmd=getType == 'cadence'
         # try:
-        #     url = f'{PROPOSALS_API}cmd=getType&ktn={semid}'
+        #     url = f'{self.proposal_api}cmd=getType&ktn={semid}'
         #     result = urlopen(url).read().decode('utf-8')
         #     result = json.loads(result)
         #     if result and result['success'] == 1 and result['data']['ProgramType'] == 'Cadence': 
@@ -275,7 +273,7 @@ class KoaPiNotify:
 
         #Twilight Method 2: check proposalsAPI.php?cmd=getTwilightPrograms
         try:
-            url = f'{PROPOSALS_API}cmd=getTwilightPrograms&semester={sem}'
+            url = f'{self.proposal_api}cmd=getTwilightPrograms&semester={sem}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
@@ -308,12 +306,12 @@ class KoaPiNotify:
 
     #todo
         # to = pi_email
-        to = ADMIN_EMAIL
-        frm = ADMIN_EMAIL
-        bcc = ADMIN_EMAIL
+        to = self.admin_email
+        frm = self.admin_email
+        bcc = self.admin_email
         subject = f"The archiving and future release of your {instr} data";
         if self.dev: 
-            to = DEV_EMAIL
+            to = self.dev_email
             bcc = ''
             subject = '[TEST] ' + subject
         msg = self.get_pi_send_msg(instr, sem, progid, pp, pp1, pp2, pp3)
