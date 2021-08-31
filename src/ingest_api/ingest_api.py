@@ -7,6 +7,8 @@ import yaml
 import os 
 import sys
 import smtplib
+# import configparser
+
 from email.mime.text import MIMEText
 
 import logging
@@ -24,8 +26,14 @@ LAST_EMAIL_TIMES = None
 
 #Load config in global space (NOTE: Need chdir b/c cwd is not correct unless running via run.csh)
 os.chdir(sys.path[0])
-with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
+# with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
+# CONFIG = CONFIG['ingest_api']
+
+with open('config_ingest_api.ini') as f: CONFIG = yaml.safe_load(f)
 CONFIG = CONFIG['ingest_api']
+
+# config = configparser.ConfigParser()
+# config.read('config_ingest_api.ini')
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
 remove_whitespace_and_make_lowercase = lambda s: ''.join(s.split()).lower()
@@ -273,7 +281,7 @@ def notify_pi(parsedParams):
     # dev = 1 if parsedParams.get('dev') == 'true' else 0
     dev = 1
 
-    kpn = KoaPiNotify(koaid, instr, level, dev)
+    kpn = KoaPiNotify(koaid, instr, level, CONFIG, dev)
     res, msg = kpn.on_ingest()
     if not res:
         log.error(msg)
