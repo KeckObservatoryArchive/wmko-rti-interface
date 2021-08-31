@@ -136,13 +136,13 @@ def parse_koaid(koaid):
 
     assert_in_set(inst, CONFIG['INST_SET_ABBR'])
     t = parse_utdate(utdate, format='%Y%m%d')
-    assert len(seconds) == 5, 'check seconds length'
-    assert seconds.isdigit(), 'check if seconds is positive integer'
-    assert len(dec) == 2, 'check decimal length'
-    assert dec.isdigit(), 'check if decimal is positive integer'
+    assert len(seconds) == 5, 'check KOAID seconds length'
+    assert seconds.isdigit(), 'check if KOAID seconds is positive integer'
+    assert len(dec) == 2, 'check KOAID decimal length'
+    assert dec.isdigit(), 'check if KOAID decimal is positive integer'
     uttime = ''.join([seconds, '.', dec])
-    assert float(uttime) < 86400, 'seconds exceed day'
-    assert ftype == 'fits', 'check file type'
+    assert float(uttime) < 86400, 'KOAID seconds exceed day'
+    assert ftype == 'fits', 'check KOAID file type,  must end with .fits'
     koaid = koaid.replace(".fits", "")
 
     return koaid
