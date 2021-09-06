@@ -7,6 +7,8 @@ import yaml
 import os 
 import sys
 import smtplib
+# import configparser
+
 from email.mime.text import MIMEText
 
 import logging
@@ -24,8 +26,14 @@ LAST_EMAIL_TIMES = None
 
 #Load config in global space (NOTE: Need chdir b/c cwd is not correct unless running via run.csh)
 os.chdir(sys.path[0])
-with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
+# with open('config.live.ini') as f: CONFIG = yaml.safe_load(f)
+# CONFIG = CONFIG['ingest_api']
+
+with open('config_ingest_api.ini') as f: CONFIG = yaml.safe_load(f)
 CONFIG = CONFIG['ingest_api']
+
+# config = configparser.ConfigParser()
+# config.read('config_ingest_api.ini')
 
 remove_whitespace_and_make_uppercase = lambda s: ''.join(s.split()).upper()
 remove_whitespace_and_make_lowercase = lambda s: ''.join(s.split()).lower()
@@ -128,13 +136,13 @@ def parse_koaid(koaid):
 
     assert_in_set(inst, CONFIG['INST_SET_ABBR'])
     t = parse_utdate(utdate, format='%Y%m%d')
-    assert len(seconds) == 5, 'check seconds length'
-    assert seconds.isdigit(), 'check if seconds is positive integer'
-    assert len(dec) == 2, 'check decimal length'
-    assert dec.isdigit(), 'check if decimal is positive integer'
+    assert len(seconds) == 5, 'check KOAID seconds length'
+    assert seconds.isdigit(), 'check if KOAID seconds is positive integer'
+    assert len(dec) == 2, 'check KOAID decimal length'
+    assert dec.isdigit(), 'check if KOAID decimal is positive integer'
     uttime = ''.join([seconds, '.', dec])
-    assert float(uttime) < 86400, 'seconds exceed day'
-    assert ftype == 'fits', 'check file type'
+    assert float(uttime) < 86400, 'KOAID seconds exceed day'
+    assert ftype == 'fits', 'check KOAID file type,  must end with .fits'
     koaid = koaid.replace(".fits", "")
 
     return koaid
@@ -268,13 +276,14 @@ def notify_pi(parsedParams):
     koaid = parsedParams['koaid']
     instr = parsedParams['instrument']
     level = parsedParams['ingesttype']
-    #todo: turning on dev until we are ready to make this feature live
-    #dev = 1 if parsedParams.get('dev') == 'true' else 0
+
+    # todo: turning on dev until we are ready to make this feature live
+    # dev = 1 if parsedParams.get('dev') == 'true' else 0
     dev = 1
 
-    kpn = KoaPiNotify(koaid, instr, level, dev)
+    kpn = KoaPiNotify(koaid, instr, level, CONFIG, dev)
     res, msg = kpn.on_ingest()
-    if res is False:
+    if not res:
         log.error(msg)
 
 

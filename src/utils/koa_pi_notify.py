@@ -40,16 +40,6 @@ from urllib.request import urlopen
 import logging
 log = logging.getLogger('wmko_rti_api')
 
-
-#TODO: Move this to main config file?
-#module globals
-PROPOSALS_API = 'https://www.keck.hawaii.edu/software/db_api/proposalsAPI.php?'
-TELSCHED_API = 'https://www.keck.hawaii.edu/software/db_api/telSchedule.php?'
-MAX_OLD_DAYS = 7
-ADMIN_EMAIL = 'koaadmin@keck.hawaii.edu'
-DEV_EMAIL = 'koaadmin@keck.hawaii.edu'
-ALLOWED_LEVELS = [0]
-
 #map any instrument names to base name for easy query searching (ie 'nirspec' should search on '%nirsp%')
 INSTR_BASE = {
     'NIRSPEC': 'NIRSP'
@@ -58,11 +48,19 @@ INSTR_BASE = {
 
 class KoaPiNotify:
 
-    def __init__(self, koaid, instr, level, dev=False):
+    def __init__(self, koaid, instr, level, config, dev=False):
         self.koaid = koaid
         self.instr = instr
         self.level = level
         self.dev = dev
+
+        self.proposal_api = config['PROPOSALS_API']
+        self.telsched_api = config['TELSCHED_API']
+        self.max_old_days = config['MAX_OLD_DAYS']
+        self.admin_email = config['ADMIN_EMAIL']
+        self.dev_email = config['DEV_EMAIL']
+        self.allowed_levels = config['ALLOWED_LEVELS']
+
         log.info(f"KoaPiNotify: {koaid}, {instr}, {level}, {dev}")
         print(f"KoaPiNotify: {koaid}, {instr}, {level}, {dev}")
 
@@ -73,59 +71,87 @@ class KoaPiNotify:
         Returns True/False if PI was emailed
         """
 
-        #db init (assuming relative location to config)
+        # db init (assuming relative location to config)
         self.dbname = 'koa'
         self.db = db_conn.db_conn('config.live.ini')
 
-        #We are only dealing with level 0 for now
+        # We are only dealing with level 0 for now
         self.level = self.get_numerical_level(self.level)
         if self.level is False:
             return False, f"Could not parse ingest type to numerical level: {self.level}"
-        if self.level not in ALLOWED_LEVELS:
+        if self.level not in self.allowed_levels:
             return False, f"ERROR: Level {self.level} not in allowed ingest types."
 
-        #Find koa_status record and get semid
-        #get utdate from koaid
+        # Find koa_status record and get semid
+        # get utdate from koaid
         self.semid = self.get_semid_from_db(self.koaid, self.instr, self.level)
         if not self.semid:
             return False, f"Could not lookup SEMID in koa_status for {self.koaid}"
 
-        #get utdate from koaid
+        # get utdate from koaid
         self.utdate = self.get_utdate_from_koaid(self.koaid)
         if self.utdate is False:
             return False, f"Could not parse KOAID {self.koaid}"
 
-        #todo: validate inputs
+        # todo: validate inputs
 
-        #Look for existing entry
+        # Look for existing entry
         if self.is_existing_entry(self.semid, self.instr, self.utdate, self.level):
             return False, f"Existing entry found for {self.semid}, {self.instr}, {self.level}"
 
-        #Make sure this utdate is not too old
+        # Make sure this utdate is not too old
         utdatets = dt.datetime.strptime(self.utdate, '%Y-%m-%d')
         diff = dt.datetime.now() - utdatets
-        if diff.days > MAX_OLD_DAYS:
-           return False, f"ERROR: date {utdate} is more than {MAX_OLD_DAYS} days ago"
+        if diff.days > self.max_old_days:
+            return False, f"ERROR: date {self.utdate} is more than " \
+                          f"{self.max_old_days} days ago"
 
-        #Make sure this instrument and program were scheduled this day
+        # Make sure this instrument and program were scheduled this day
         if not self.is_scheduled(self.utdate, self.semid, self.instr):
-            return False, f'ERROR: Program {self.semid}, instrument {self.instr} was not scheduled on UT date {self.utdate}'
+            msg = f'ERROR: Program {self.semid}, instrument {self.instr} was ' \
+                  f'not scheduled on UT date {self.utdate}'
+            return False, msg
 
-        #get PI info, return if fail
+        # added to exclude files that did not complete ingest
+        if self.level == 0:
+            answer, msg = self._check_status_codes()
+            if not answer:
+                return False, msg
+
+        # get PI info, return if fail
         pi_email = self.get_pi_email(self.semid)
         if not pi_email:
-            return False, f"ERROR: Could not get PI info for {semid}"
+            return False, f"ERROR: Could not get PI info for {self.semid}"
 
-        #insert record and ensure it was successful before proceeding to email
-        res = self.insert_new_entry(self.semid, self.instr, self.utdate, self.level, pi_email)
+        # insert record and ensure it was successful before proceeding to email
+        res = self.insert_new_entry(self.semid, self.instr, self.utdate,
+                                    self.level, pi_email)
         if not res:
             return False, "Insert failed.  Not sending PI email."
 
-        #do email to PI
-        if not self.send_pi_email(pi_email, self.semid, self.instr, self.utdate, self.level):
+        # do email to PI
+        if not self.send_pi_email(pi_email, self.semid, self.instr,
+                                  self.utdate, self.level):
             return False, "Email to PI failed."
 
         return True, ''
+
+    def _check_status_codes(self):
+        query = (f"select utdatetime, status, status_code, status_code_ipac"
+                 f" from koa_status where koaid='{self.koaid}' "
+                 f"and instrument='{self.instr}' and level='{self.level}' ")
+
+        status_rows = self.db.query(self.dbname, query)
+        for row in status_rows:
+            if (row['status'] != 'COMPLETE' or row['status_code']
+                    or row['status_code_ipac']):
+                msg = f"New record has errors and not eligible for a PI Email." \
+                      f" The status: {row['status']}, status_code: " \
+                      f"{row['status_code']}, status_ipac: {row['status_code_ipac']}"
+
+                return False, msg
+
+        return True, None
 
     def get_numerical_level(self, level):
         level= level.replace('lev', '')
@@ -181,7 +207,7 @@ class KoaPiNotify:
 
 
     def get_pi_email(self, semid):
-        url = f'{PROPOSALS_API}ktn={semid}&cmd=getPIEmail'
+        url = f'{self.proposal_api}ktn={semid}&cmd=getPIEmail'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -194,7 +220,7 @@ class KoaPiNotify:
 
     def get_propint_data(self, semid):
 
-        url = f'{PROPOSALS_API}ktn={semid}&cmd=getApprovedPP'
+        url = f'{self.proposal_api}ktn={semid}&cmd=getApprovedPP'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -214,7 +240,7 @@ class KoaPiNotify:
 
         #check telschedule
         try:
-            url = f'{TELSCHED_API}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.telsched_api}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
@@ -224,7 +250,7 @@ class KoaPiNotify:
 
         #check ToO
         try:
-            url = f'{TELSCHED_API}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
@@ -237,7 +263,7 @@ class KoaPiNotify:
 
         #Twilight Method 1: check proposalsAPI.php?cmd=getType == 'cadence'
         # try:
-        #     url = f'{PROPOSALS_API}cmd=getType&ktn={semid}'
+        #     url = f'{self.proposal_api}cmd=getType&ktn={semid}'
         #     result = urlopen(url).read().decode('utf-8')
         #     result = json.loads(result)
         #     if result and result['success'] == 1 and result['data']['ProgramType'] == 'Cadence': 
@@ -247,7 +273,7 @@ class KoaPiNotify:
 
         #Twilight Method 2: check proposalsAPI.php?cmd=getTwilightPrograms
         try:
-            url = f'{PROPOSALS_API}cmd=getTwilightPrograms&semester={sem}'
+            url = f'{self.proposal_api}cmd=getTwilightPrograms&semester={sem}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
@@ -280,12 +306,12 @@ class KoaPiNotify:
 
     #todo
         # to = pi_email
-        to = ADMIN_EMAIL
-        frm = ADMIN_EMAIL
-        bcc = ADMIN_EMAIL
+        to = self.admin_email
+        frm = self.admin_email
+        bcc = self.admin_email
         subject = f"The archiving and future release of your {instr} data";
         if self.dev: 
-            to = DEV_EMAIL
+            to = self.dev_email
             bcc = ''
             subject = '[TEST] ' + subject
         msg = self.get_pi_send_msg(instr, sem, progid, pp, pp1, pp2, pp3)
@@ -306,8 +332,8 @@ class KoaPiNotify:
         msg += f"Your {instr} data for\n\n";
         msg += f"Semester: {semester}\n";
         msg += f"Program: {progid}\n\n";
-        msg += f"is now being archived in real-time.  The proprietary period for your program, as approved by\n";
-        msg += f"your Selecting Official, is\n\n";
+        msg += f"is now being archived in real-time.  The proprietary period for your program,\n";
+        msg += f"as approved by your Selecting Official, is\n\n";
         if pp or instr != "HIRES":
             msg += f"{pp} months\n\n";
         else:
@@ -318,7 +344,7 @@ class KoaPiNotify:
         msg += f"KOA.  Policy details can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/KOA_data_policy.pdf.";
         msg += f"\n\n";
-        msg += f"If the proprietary period shown below is not what you expect, please\n";
+        msg += f"If the proprietary period shown above is not what you expect, please\n";
         msg += f"contact your current Selecting Official.  The most up-to-date list\n";
         msg += f"of Selecting Officials can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/soList.html\n\n";

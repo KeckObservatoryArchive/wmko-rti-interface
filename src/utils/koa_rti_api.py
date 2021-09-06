@@ -48,6 +48,7 @@ class KoaRtiApi:
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
+        self.level = var_get.level
 
         self.table_view = None
         self.change_table_name(var_get.view)
@@ -286,11 +287,11 @@ class KoaRtiApi:
         if self.utd and not utd2:
             utd2 = self.utd
 
-        current_date = datetime.strptime(self.utd, '%Y-%m-%d')
-        end_date = datetime.strptime(utd2, '%Y-%m-%d')
+        current_date = datetime.strptime(self.utd, '%Y-%m-%d') + timedelta(days=1)
+        end_date = datetime.strptime(utd2, '%Y-%m-%d') + timedelta(days=1)
 
         date_str = current_date.strftime('%Y%m%d')
-        query += f" {add_str} ({val} LIKE {date_str}"
+        query += f" {add_str} ({val} LIKE '%{date_str}%'"
 
 
         while current_date < end_date:
@@ -536,21 +537,21 @@ class KoaRtiApi:
     def statDrpTime(self):
         stats = self._bin_time_length('lev0.process_end_time', 'lev1.creation_time')
 
-        plot_obj = OverlayTimePlot(stats, 'Processing Time', xrange=72000)
+        plot_obj = OverlayTimePlot(stats, 'DRP Processing Time', xrange=72000)
 
         return plot_obj.get_plot()
 
     def statProcessTime(self):
         stats = self._bin_time_length('creation_time', 'process_end_time')
 
-        plot_obj = OverlayTimePlot(stats, 'Processing Time')
+        plot_obj = OverlayTimePlot(stats, 'RTI Processing Time')
 
         return plot_obj.get_plot()
 
     def statTransferTime(self):
         stats = self._bin_time_length('xfr_start_time', 'xfr_end_time')
 
-        plot_obj = OverlayTimePlot(stats, 'Transfer Time - Transfer Start to End')
+        plot_obj = OverlayTimePlot(stats, 'RTI Transfer Time - Transfer Start to End')
 
         return plot_obj.get_plot()
 
@@ -562,8 +563,12 @@ class KoaRtiApi:
         return plot_obj.get_plot()
 
     def statTotalTime(self):
-        stats = self._bin_time_length('creation_time', 'ingest_end_time')
-        plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
+        if self.level == 1:
+            stats = self._bin_time_length('lev0.creation_time', 'lev1.ingest_end_time')
+            plot_obj = OverlayTimePlot(stats, 'Total Time - Lev0 Write to Lev1 IPAC Response')
+        else:
+            stats = self._bin_time_length('creation_time', 'ingest_end_time')
+            plot_obj = OverlayTimePlot(stats, 'Total Time - File Write to IPAC Response')
         return plot_obj.get_plot()
 
     def getPlots(self):
@@ -581,6 +586,9 @@ class KoaRtiApi:
         else:
             results = {'plots': [self.statTotalTime(), self.statProcessTime(),
                                  self.statTransferTime(), self.statIngestTime()]}
+
+        if self.level >= 1:
+            results['plots'].append(self.statDrpTime())
 
         return results
 

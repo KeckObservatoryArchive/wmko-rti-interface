@@ -28,6 +28,7 @@ def query_unique_row(parsedParams, conn, dbUser, level=0):
     #  check if unique
     query = f"select * from koa_status where instrument='{instrument}' and koaid='{koaid}' and level={level}"
     result = conn.query(dbUser, query)
+    print("LEN", len(result), result, "Q", query)
     #  This assert returns a null result
     if result is False:
         parsedParams['apiStatus'] = 'ERROR'
@@ -45,7 +46,8 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update koa_status set"
     for key in config['METRICS_PARAMS']:
-        if parsedParams['metrics'][key] == '': continue
+        if key not in parsedParams or parsedParams['metrics'][key] == '':
+            continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"
     updateQuery = f"{updateQuery} status='{parsedParams['status']}'"
