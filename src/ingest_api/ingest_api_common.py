@@ -46,7 +46,8 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update koa_status set"
     for key in config['METRICS_PARAMS']:
-        if key not in parsedParams or parsedParams['metrics'][key] == '':
+#        if key not in parsedParams or parsedParams['metrics'][key] == '':
+        if parsedParams['metrics'][key] == '':
             continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
     updateQuery = f"{updateQuery} ipac_response_time='{now}',"

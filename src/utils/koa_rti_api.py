@@ -287,8 +287,8 @@ class KoaRtiApi:
         if self.utd and not utd2:
             utd2 = self.utd
 
-        current_date = datetime.strptime(self.utd, '%Y-%m-%d') + timedelta(days=1)
-        end_date = datetime.strptime(utd2, '%Y-%m-%d') + timedelta(days=1)
+        current_date = datetime.strptime(self.utd, '%Y-%m-%d')
+        end_date = datetime.strptime(utd2, '%Y-%m-%d')
 
         date_str = current_date.strftime('%Y%m%d')
         query += f" {add_str} ({val} LIKE '%{date_str}%'"
