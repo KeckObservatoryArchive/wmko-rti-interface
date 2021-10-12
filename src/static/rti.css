@@ -6,14 +6,14 @@ body            {
     background-attachment: fixed;
 #    background-image: url(http://vm-koarti:55557/static/starry_background.jpg);
     background-size: cover;
-    background-color: #fff7ea;
+    background-color: #baa685;
     color: midnightblue;
     text-align:center;}
 
 /*make header white*/
 h1 {color:white;}
 /*make links lime green*/
-a {color: #16c616;}
+a {color: #6a956a;}
 
 div.ui-datepicker{font-size:10px;}
 
@@ -42,12 +42,13 @@ div.ui-datepicker{font-size:10px;}
     white-space:nowrap;
 }
 .rti_table td {
-    background:navajowhite;
+    #background:navajowhite;
+    background: #fff7ea;
     font-size: 8pt;
     font-weight:bold;
     padding: 8px 6px;
     white-space:nowrap;
-    border:1px solid white;
+    border:1px solid darkslategray;
 }
 
 .rti_table tbody tr {
@@ -65,22 +66,22 @@ table.rti_table {
 }
 
 /*make 'done' cells forest green with opacity = 0.8*/
-td.done         {background:rgba(33,122,21,0.8);}
-td.DONE         {background:rgba(33,122,21,0.8);}
-td.TRANSFERRED  {background:rgba(33,122,21,0.8);}
-td.TRANSFERRING {background:rgba(33,122,21,0.8);}
-td.PROCESSING   {background:rgba(33,122,21,0.8);}
-td.PROCESSING   {background:rgba(33,122,21,0.8);}
-td.WARN	{background:rgba(255,255,0,0.8); color:black}
+td.done         {background:rgba(107,255,156,0.8);}
+td.DONE         {background:rgba(107,255,156,0.8);}
+td.TRANSFERRED  {background:rgba(107,255,156,0.8);}
+td.TRANSFERRING {background:rgba(107,255,156,0.8);}
+td.PROCESSING   {background:rgba(107,255,156,0.8);}
+td.PROCESSING   {background:rgba(107,255,156,0.8);}
+td.WARN	{background:rgba(255,255,107,0.8); color:black}
 td.INVALID_PROGID	{background:rgba(255,255,0,0.8); color:black}
 
 /*make 'error' and 'failed' cells red with opacity = 0.8*/
-td.ERROR		{background:rgba(229,71,25,0.8);}
-td.INVALID		{background:rgba(229,71,25,0.8);}
-td.failed		{background:rgba(229,71,25,0.8);}
-td.FAILED		{background:rgba(229,71,25,0.8);}
-td.DUPLICATE_KOAID	{background:rgba(229,71,25,0.8);}
-td.FILEPATH_REJECT	{background:rgba(229,71,25,0.8);}
+td.ERROR		{background:rgba(255,149,117,0.8);}
+td.INVALID		{background:rgba(255,149,117,0.8);}
+td.failed		{background:rgba(255,149,117,0.8);}
+td.FAILED		{background:rgba(255,149,117,0.8);}
+td.DUPLICATE_KOAID	{background:rgba(255,149,117,0.8);}
+td.FILEPATH_REJECT	{background:rgba(255,149,117,0.8);}
 
 .sel_style {
     cursor:pointer;
