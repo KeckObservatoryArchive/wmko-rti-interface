@@ -28,7 +28,7 @@ def query_unique_row(parsedParams, conn, dbUser, level=0):
     #  check if unique
     query = f"select * from koa_status where instrument='{instrument}' and koaid='{koaid}' and level={level}"
     result = conn.query(dbUser, query)
-    print("LEN", len(result), result, "Q", query)
+#    print("LEN", len(result), result, "Q", query)
     #  This assert returns a null result
     if result is False:
         parsedParams['apiStatus'] = 'ERROR'
@@ -46,7 +46,6 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
     now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update koa_status set"
     for key in config['METRICS_PARAMS']:
-#        if key not in parsedParams or parsedParams['metrics'][key] == '':
         if parsedParams['metrics'][key] == '':
             continue
         updateQuery = f"{updateQuery} {key}='{parsedParams['metrics'][key]}',"
@@ -65,3 +64,14 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
 
     return result, parsedParams
 
+def query_all_koaid(conn, dbUser, instrument, level, utdate):
+    '''Return all koaids for level and utdate.'''
+
+    #  check if unique
+    query = ' '.join((
+        f"select koaid from koa_status where instrument='{instrument}'",
+        f"and level={level} and koaid like '%{utdate.replace('-', '')}%'"
+    ))
+    result = conn.query(dbUser, query)
+
+    return result

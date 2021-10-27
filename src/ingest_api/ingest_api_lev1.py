@@ -2,7 +2,7 @@ from os.path import isdir
 from datetime import datetime as dt
 from ingest_api.ingest_api_common import *
 
-def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_test'):
+def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_test', status='QUEUED'):
     '''
     For ingesttype=lev1, verify can continue, then
         - start process to archive data products (triggered from DRP) or
@@ -39,14 +39,14 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
 
         # New entry
         if len(result) == 0:
-            # Add QUEUED entry to koa_status
+            # Add QUEUED or WAITING entry to koa_status
             now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             query = ("insert into koa_status set "
                     f"level={level},"
                     f"instrument='{instrument}',"
                     f"service='DRP',"
                     f"koaid='{koaid}',"
-                    f"status='QUEUED',"
+                    f"status='{status}',"
                     f"stage_file='{processDir}',"
                     f"creation_time='{now}'")
             result = conn.query(dbUser, query)
@@ -69,9 +69,9 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
                     f"service='DRP' and koaid='{koaid}'")
             result = conn.query(dbUser, query)
 
-            # Add QUEUED entry to koa_status
+            # Add QUEUED or WAITING entry to koa_status
             now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-            query = ("update koa_status set status='QUEUED',")
+            query = (f"update koa_status set status='{status}',")
             for key in config['BLANK']:
                 query += f"{key}=null,"
             query += (f"process_dir='{processDir}',"
@@ -105,7 +105,7 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         # check reingest
         if reingest == 'FALSE' and result['ipac_response_time']:
             parsedParams['apiStatus'] = 'ERROR'
-            parsedParams['ingestErrors'].append('ipac_response_time already exists')
+            parsedParams['ingestErrors'].append(f'ipac_response_time already exists')
             return parsedParams
 
         # do database update

@@ -17,6 +17,7 @@ log = logging.getLogger('wmko_rti_api')
 from ingest_api.ingest_api_common import *
 from ingest_api.ingest_api_lev0 import update_lev0_parameters
 from ingest_api.ingest_api_lev1 import update_lev1_parameters
+from ingest_api.ingest_api_lev2 import update_lev2_parameters
 
 from utils.koa_pi_notify import KoaPiNotify
 
@@ -115,7 +116,7 @@ def parse_metrics(metrics):
             raise ParameterException(f'Incorrect format for metrics key {key}')
     return metrics
 
-def parse_utdate(utdate, format='%Y-%m-%d'):
+def parse_utdate(utdate, format='%Y%m%d'):
     '''Verify UT date has correct format.'''
 
     try:
@@ -185,6 +186,7 @@ def validate_ingest(parsedParams, reqParams):
         parsedParams['ingestErrors'].append('params is empty')
     includesReqParams = all((req in parsedParams.keys() for req in reqParams))
     if not includesReqParams:
+        print(reqParams)
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('required params not included')
     #  check if koaid inst portion matches inst
@@ -209,6 +211,9 @@ def parse_params(reqDict):
         if reqDict['ingesttype'] in ['lev1', 'lev2'] and not 'status' in reqDict.keys():
             param = f"{reqDict['ingesttype'].upper()}_REQUIRED_PARAMS"
             reqParams = CONFIG[param].copy()
+        # Remove koaid if lev2 return call from IPAC
+        if reqDict['ingesttype'] == 'lev2' and 'metrics' in reqDict.keys():
+            reqParams.remove('koaid')
 
     parsedParams = dict()
     parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -232,7 +237,7 @@ def ingest_api_get():
     funcs = {
         "lev0":update_lev0_parameters, 
         "lev1":update_lev1_parameters,
-        "lev2":update_lev1_parameters
+        "lev2":update_lev2_parameters
     }
     reqDict = request.args.to_dict()
     parsedParams = parse_params(reqDict)
@@ -266,7 +271,8 @@ def ingest_api_get():
 
         #ok successful ingest, so lets email the PI:
         else:
-            notify_pi(parsedParams)
+            if parsedParams['ingesttype'] == 'lev0':
+                notify_pi(parsedParams)
 
     return jsonify(parsedParams)
 
@@ -307,7 +313,6 @@ def notify_error(errcode, text='', instr='', service='', check_time=True):
 
     #get admin email.  Return if none.
     adminEmail = CONFIG['ADMIN_EMAIL']
-    adminEmail = ''
     if not adminEmail: return
     
     # Construct email message
