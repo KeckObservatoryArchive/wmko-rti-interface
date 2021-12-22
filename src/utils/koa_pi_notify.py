@@ -227,7 +227,10 @@ class KoaPiNotify:
             pp = result['data']['ProprietaryPeriod']
             return pp, pp, pp, pp
         except Exception as e:
-            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
+            if '_E' in semid:
+                return 18, 18, 18, 18
+            else:
+                log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
         return '', '', '', ''
 
 
