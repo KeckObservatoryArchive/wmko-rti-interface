@@ -335,7 +335,7 @@ class KoaPiNotify:
         msg += f"Your {instr} data for\n\n";
         msg += f"Semester: {semester}\n";
         msg += f"Program: {progid}\n\n";
-        msg += f"is now being archived in real-time.  The proprietary period for your program,\n";
+        msg += f"are now being archived in real-time.  The proprietary period for your program,\n";
         msg += f"as approved by your Selecting Official, is\n\n";
         if pp or instr != "HIRES":
             msg += f"{pp} months\n\n";
