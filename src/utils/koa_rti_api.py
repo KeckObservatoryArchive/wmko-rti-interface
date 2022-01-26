@@ -534,10 +534,38 @@ class KoaRtiApi:
         return stats, sums
 
     """  ------------  metrics Plots section  ------------  """
-    def statDrpTime(self):
-        stats = self._bin_time_length('lev0.process_end_time', 'lev1.creation_time')
+    def statIpacTime(self):
+        units = None
+        if self.level == 2:
+            # stats = self._bin_time_length('lev2.process_end_time',
+            stats = self._bin_time_length('lev2.creation_time',
+                                          'lev2.ipac_response_time')
+            stats['KCWI_DRP'] = self._sec_to_mins(stats['KCWI_DRP'])
+            units = 'mins'
+            xrange = 1440
+        else:
+            stats = self._bin_time_length('lev1.creation_time',
+                                          'lev1.ipac_response_time')
+            xrange = 240
 
-        plot_obj = OverlayTimePlot(stats, 'DRP Processing Time', xrange=72000)
+        plot_obj = OverlayTimePlot(stats, f'Level {self.level} Processing Time',
+                                   xrange=xrange, units=units)
+
+        return plot_obj.get_plot()
+
+    def statDrpTime(self):
+        units = None
+        if self.level == 2:
+            stats = self._bin_time_length('lev0.process_end_time', 'lev2.creation_time')
+            stats['KCWI_DRP'] = self._sec_to_mins(stats['KCWI_DRP'])
+            units = 'mins'
+            xrange = 1440
+        else:
+            stats = self._bin_time_length('lev0.process_end_time', 'lev1.creation_time')
+            xrange = 180
+
+        plot_obj = OverlayTimePlot(stats, f'Level {self.level} DRP Processing Time',
+                                   xrange=xrange, units=units)
 
         return plot_obj.get_plot()
 
@@ -583,12 +611,14 @@ class KoaRtiApi:
             results = {'plots': [self.statIngestTime()]}
         elif self.params.plot == 4:
             results = {'plots': [self.statDrpTime()]}
+        elif self.params.plot == 5:
+            results = {'plots': [self.statIpacTime()]}
         else:
             results = {'plots': [self.statTotalTime(), self.statProcessTime(),
                                  self.statTransferTime(), self.statIngestTime()]}
 
-        if self.level >= 1:
-            results['plots'].append(self.statDrpTime())
+            if self.level >= 1:
+                results['plots'].append(self.statDrpTime())
 
         return results
 
@@ -668,9 +698,8 @@ class KoaRtiApi:
         if not start_key or not end_key:
             return [], sums
 
-        unit = "SECOND"
         tdiff_str = f"TIMEDIFF({end_key}, {start_key})"
-        if 'lev0' in start_key or 'lev0' in end_key:
+        if 'lev0' in start_key or 'lev0' in end_key or 'lev2' in start_key or 'lev1' in start_key:
             results_dict = self._drp_results(tdiff_str, table)
         else:
             fields = f'koaid, instrument, level, filesize_mb, archsize_mb, {tdiff_str}'
@@ -697,6 +726,14 @@ class KoaRtiApi:
 
         return cln_results, sums
 
+    def _sec_to_mins(self, stats):
+        stat_min = {}
+        for ky, val in stats.items():
+            new_ky = int(ky / 60)
+            stat_min[new_ky] = val
+
+        return stat_min
+
     def _metrics_results(self, fields, table):
         results = {}
 
@@ -714,14 +751,24 @@ class KoaRtiApi:
 
         results = {'DRP': []}
 
-        query = f"SELECT lev0.koaid, lev0.instrument, lev1.level, " \
-                f"lev0.filesize_mb, lev1.archsize_mb, {tdiff} " \
-                f"FROM {table} lev1, {table} lev0 " \
-                f"WHERE lev0.koaid=lev1.koaid AND lev0.level=0 AND lev1.level=1"
+        query = None
 
-        query = self._add_koaid_daterange(query, 'lev1.koaid', " AND ")
+        if 'lev1' in tdiff:
+            query = f"SELECT lev0.koaid, lev0.instrument, lev1.level, " \
+                    f"lev0.filesize_mb, lev1.archsize_mb, {tdiff} " \
+                    f"FROM {table} lev1, {table} lev0 " \
+                    f"WHERE lev0.koaid=lev1.koaid AND lev0.level=0 AND lev1.level=1"
+            query = self._add_koaid_daterange(query, 'lev1.koaid', " AND ")
+        elif 'lev2' in tdiff:
+            query = f"SELECT lev0.koaid, lev0.instrument, lev2.level, " \
+                    f"lev0.filesize_mb, lev2.archsize_mb, {tdiff} " \
+                    f"FROM {table} lev2, {table} lev0 " \
+                    f"WHERE lev0.koaid=lev2.koaid AND lev0.level=0 AND lev2.level=2"
 
-        results['DRP'] = self.db_functions.make_query(query, ())
+            query = self._add_koaid_daterange(query, 'lev2.koaid', " AND ")
+
+        if query:
+            results['DRP'] = self.db_functions.make_query(query, ())
 
         return results
 
