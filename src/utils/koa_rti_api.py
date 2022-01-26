@@ -540,7 +540,8 @@ class KoaRtiApi:
             # stats = self._bin_time_length('lev2.process_end_time',
             stats = self._bin_time_length('lev2.creation_time',
                                           'lev2.ipac_response_time')
-            stats['KCWI_DRP'] = self._sec_to_mins(stats['KCWI_DRP'])
+            for ky in stats.keys():
+                stats[ky] = self._sec_to_mins(stats[ky])
             units = 'mins'
             xrange = 1440
         else:
@@ -557,7 +558,8 @@ class KoaRtiApi:
         units = None
         if self.level == 2:
             stats = self._bin_time_length('lev0.process_end_time', 'lev2.creation_time')
-            stats['KCWI_DRP'] = self._sec_to_mins(stats['KCWI_DRP'])
+            for ky in stats.keys():
+                stats[ky] = self._sec_to_mins(stats[ky])
             units = 'mins'
             xrange = 1440
         else:
