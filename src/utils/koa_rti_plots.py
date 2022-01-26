@@ -112,7 +112,7 @@ class TimeBarPlot(PlotBase):
 
 class OverlayTimePlot(PlotBase):
 
-    def __init__(self, results, title, xrange=240):
+    def __init__(self, results, title, xrange=240, units=None):
         """
         Plot with all integer values between 0 and the largest time value
         in the results.
@@ -133,7 +133,7 @@ class OverlayTimePlot(PlotBase):
         super().__init__(self.insts)
         if self.n_insts != 0:
             cds = self.get_columndata()
-            self.create_plot(cds)
+            self.create_plot(cds, units=units)
 
     def get_columndata(self):
         """
@@ -173,12 +173,14 @@ class OverlayTimePlot(PlotBase):
 
         return tool_tips
 
-    def create_plot(self, cds):
+    def create_plot(self, cds, units=None):
         """
         Create a plot of the number of files with a given time.
 
         :param cds: columndata source of the data
         """
+        if not units:
+            units = 's'
         self.max_xrange = int(min(self.last_val, self.max_xrange))
         tool_tips = self.define_tooltip()
 
@@ -201,7 +203,7 @@ class OverlayTimePlot(PlotBase):
             tick_incr = 1
         ticks = list(range(0,self.last_val+tick_incr, tick_incr))
         plt.xaxis.ticker = ticks
-        plt.xaxis.axis_label = "Time (s)"
+        plt.xaxis.axis_label = f"Time ({units})"
         plt.yaxis.axis_label = "Number of Files"
 
         self.plt = plt
