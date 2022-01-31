@@ -227,7 +227,10 @@ class KoaPiNotify:
             pp = result['data']['ProprietaryPeriod']
             return pp, pp, pp, pp
         except Exception as e:
-            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
+            if '_E' in semid:
+                return 18, 18, 18, 18
+            else:
+                log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
         return '', '', '', ''
 
 
@@ -332,7 +335,7 @@ class KoaPiNotify:
         msg += f"Your {instr} data for\n\n";
         msg += f"Semester: {semester}\n";
         msg += f"Program: {progid}\n\n";
-        msg += f"is now being archived in real-time.  The proprietary period for your program,\n";
+        msg += f"are now being archived in real-time.  The proprietary period for your program,\n";
         msg += f"as approved by your Selecting Official, is\n\n";
         if pp or instr != "HIRES":
             msg += f"{pp} months\n\n";

@@ -65,6 +65,8 @@
         <option value="4" {% if params.plot == 4 %}
                 selected="selected" {% endif %}>DRP</option>
         <option value="5" {% if params.plot == 5 %}
+                selected="selected" {% endif %}>IPAC</option>
+        <option value="5" {% if params.plot == 6 %}
                 selected="selected" {% endif %}>All</option>
     </select>
     </div>
@@ -100,6 +102,8 @@
         selected="selected"{% endif %}>Level 0</option>
         <option value="1" {% if params.level == 1 %}
         selected="selected"{% endif %}>Level 1</option>
+        <option value="2" {% if params.level == 2 %}
+        selected="selected"{% endif %}>Level 2</option>
     </select>
     </td>
     </div>
