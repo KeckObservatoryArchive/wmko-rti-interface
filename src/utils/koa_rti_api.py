@@ -27,14 +27,24 @@ class KoaRtiApi:
         self.keck2_inst = ['None', 'DEIMOS', 'ESI', 'KCWI', 'NIRES', 'NIRC2',
                            'NIRSPEC']
 
-        # change these to change the order of the results
-        self.query_keys = ['STATUS', 'KOAID', 'UTDATETIME', 'Filename',
-                           'INSTRUMENT', 'KOAIMTYP', 'SEMID', 'Stage_Dir',
-                           'Process_Dir', 'Archive_Dir', 'Status_Code',
-                           'Creation_Time', 'Dep_Start_Time', 'Dep_End_Time',
-                           'IPAC_Notify_Time', 'IPAC_Response_Time',
-                           'Stage_time', 'Filesize_MB', 'Archsize_MB',
-                           'Last_Mod', 'OFNAME', 'ID']
+        self.level = var_get.level
+
+        if self.level and int(self.level) in (1, 2):
+            self.query_keys = ['STATUS', 'KOAID', 'INSTRUMENT',
+                               'IPAC_NOTIFY_TIME', 'INGEST_START_TIME',
+                               'INGEST_COPY_START_TIME', 'INGEST_COPY_END_TIME',
+                               'IPAC_RESPONSE_TIME', 'INGEST_END_TIME',
+                               'REVIEWED', 'SERVICE', 'LAST_MOD']
+        else:
+            # change these to change the order of the results
+            self.query_keys = ['STATUS', 'KOAID', 'UTDATETIME', 'Filename',
+                               'INSTRUMENT', 'KOAIMTYP', 'SEMID', 'Stage_Dir',
+                               'Process_Dir', 'Archive_Dir', 'Status_Code',
+                               'Creation_Time', 'Dep_Start_Time', 'Dep_End_Time',
+                               'IPAC_Notify_Time', 'IPAC_Response_Time',
+                               'Stage_time', 'Filesize_MB', 'Archsize_MB',
+                               'Last_Mod', 'OFNAME', 'ID']
+
 
         self.monthly_header = ['Date', 'Total_Files']
         self.monthly_header += self.status_opts + ['Instruments']
@@ -48,7 +58,6 @@ class KoaRtiApi:
         self.params = var_get
         self.limit = var_get.limit
         self.utd = var_get.utd
-        self.level = var_get.level
 
         self.table_view = None
         self.change_table_name(var_get.view)
@@ -109,6 +118,7 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
+        print('serach date')
         query, params = self._generic_query()
         results = list(self.db_functions.make_query(query, params))
 
@@ -537,7 +547,6 @@ class KoaRtiApi:
     def statIpacTime(self):
         units = None
         if self.level == 2:
-            # stats = self._bin_time_length('lev2.process_end_time',
             stats = self._bin_time_length('lev2.creation_time',
                                           'lev2.ipac_response_time')
             for ky in stats.keys():
@@ -813,7 +822,7 @@ class KoaRtiApi:
         return stats
 
     def _generic_query(self, columns=None, key=None, val=None,
-                       add=None, table='koa_status'):
+                       add=None, level=None, table=None):
         """
         Only uses UTD if added as an additional parameter.
 
@@ -822,15 +831,25 @@ class KoaRtiApi:
 
         :return: (str, tuple) query string and escaped parameters for query
         """
-        query, params, add_str = query_prefix(columns, key, val, table)
+        if not table:
+            table = 'koa_status'
+
+        if self.params.level:
+            level = int(self.params.level)
+
+        query, params, add_str = query_prefix(columns, key, val, table, level)
+
+        date_val = 'utdatetime'
+        if level and level in (1, 2):
+            date_val = 'process_start_time'
 
         if self.params.chk and self.params.chk == 1:
             if self.utd and self.params.utd2:
-                query += f" {add_str} utdatetime between %s and %s"
+                query += f" {add_str} {date_val} between %s and %s"
                 params += (self.utd, self.params.utd2 + ' 23:59:59')
                 add_str = " AND "
             elif self.utd:
-                query += f" {add_str} utdatetime LIKE %s"
+                query += f" {add_str} {date_val} LIKE %s"
                 params += ("%" + self.utd + "%", )
                 add_str = " AND "
 

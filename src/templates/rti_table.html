@@ -11,7 +11,9 @@
 
     <th><input type=checkbox id="checkall" onchange="checkAll(this, 'CBrow');"></th>
     {% for i in range(0, db_columns | length() ) %}
-        <th>{{db_columns[i]}}</th>
+{#        <th>{{db_columns[i]}}</th>#}
+        <th>{{ db_columns[i]|replace("_", " ")}}
+</th>
     {% endfor %}
     <th>actions</th>
 
