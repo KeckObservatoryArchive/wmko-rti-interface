@@ -520,7 +520,7 @@ class InstrumentReport:
         :return: (str) json output of results from testAll
         """
         try:
-            results = testall.test_all('koa', datadir=TESTALL_PATH, level=1)
+            results = testall.test_all(datadir=TESTALL_PATH, level=1)
         except:
             return None
 
