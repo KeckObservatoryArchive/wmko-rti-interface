@@ -216,7 +216,11 @@ def parse_filename_dir(result):
         return split_path[0], ''
 
 
-def query_prefix(columns=None, key=None, val=None, table='koa_status'):
+# def query_prefix(columns=None, key=None, val=None, table='koa_status'):
+def query_prefix(columns=None, key=None, val=None, table=None, level=None):
+    if not table:
+        table = 'koa_status'
+
     if columns and key and val:
         query = f"SELECT {columns} FROM {table} WHERE {key} LIKE %s"
         params = ("%" + val + "%",)
@@ -237,6 +241,10 @@ def query_prefix(columns=None, key=None, val=None, table='koa_status'):
         query = f"SELECT * FROM {table}"
         params = ()
         add_str = " WHERE "
+
+    if level and int(level) in (0, 1, 2):
+        query += f" {add_str} LEVEL={level} "
+        add_str = "AND"
 
     return query, params, add_str
 
