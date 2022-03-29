@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, walk
 from os.path import isdir
 from datetime import datetime as dt
 from ingest_api.ingest_api_common import *
@@ -77,7 +77,11 @@ def update_lev2_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
                 parsedParams['ingestErrors'].append(f'datadir ({processDir}) does not exist')
             else:
                 # Get list of KOAIDs and add to queue
-                koaidList = [f for f in listdir(f"{processDir}/Science") if f.endswith('.fits')]
+                koaidList = []
+                for rootdir, dirs, files in walk(processDir):
+                    for file in files:
+                        if file.endswith('.fits'):
+                            koaidList.append(file)
                 found = []
                 for koaid in koaidList:
                     for k in koaid.split('_'):
