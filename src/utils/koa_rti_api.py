@@ -358,10 +358,15 @@ class KoaRtiApi:
         return results
 
     def updateMARKDELETED(self):
-        query = f"UPDATE koa_status SET source_deleted = True WHERE koaid=%s"
+        query = f"UPDATE koa_status SET source_deleted = 1 WHERE koaid=%s"
         params = (self.params.val, )
 
-        return query + str(params)
+        try:
+            res = self.db_functions.make_query(query, params)
+        except Exception as err:
+            return str(err)
+
+        return query + str(params) 
 
     def update_status_reviewed(self, dbid, val):
         """
