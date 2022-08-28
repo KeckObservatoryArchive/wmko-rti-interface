@@ -176,6 +176,7 @@ def load_data():
             'columns': columns,
             'date': datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
 
+
 @app.route("/koarti/koa_status/reviewed", methods=['PUT'])
 def update_koa_status_reviewed():
     """
@@ -198,6 +199,7 @@ def update_koa_status_reviewed():
         res = api.update_status_reviewed(id, val)
         num += res
     return str(num)
+
 
 @app.route("/koarti/log/<id>", methods=['GET'])
 def get_log(id):

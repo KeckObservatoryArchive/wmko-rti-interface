@@ -118,7 +118,6 @@ class KoaRtiApi:
 
         :return: (list) row/columns to be used for the table.
         """
-        print('serach date')
         query, params = self._generic_query()
         results = list(self.db_functions.make_query(query, params))
 
@@ -284,6 +283,10 @@ class KoaRtiApi:
             query += f" {add_str} {self.params.add} "
             add_str = "AND"
 
+        if self.params.inst:
+            query += f" {add_str} instrument='{self.params.inst}' "
+            add_str = "AND"
+
         query = self._add_koaid_daterange(query, 'koaid', add_str)
         results = self._lev1_query(query, params)
 
@@ -358,10 +361,15 @@ class KoaRtiApi:
         return results
 
     def updateMARKDELETED(self):
-        query = f"UPDATE koa_status SET source_deleted = True WHERE koaid=%s"
+        query = f"UPDATE koa_status SET source_deleted = 1 WHERE koaid=%s"
         params = (self.params.val, )
 
-        return query + str(params)
+        try:
+            res = self.db_functions.make_query(query, params)
+        except Exception as err:
+            return str(err)
+
+        return query + str(params) 
 
     def update_status_reviewed(self, dbid, val):
         """
@@ -708,7 +716,6 @@ class KoaRtiApi:
 
         if not start_key or not end_key:
             return [], sums
-
         tdiff_str = f"TIMEDIFF({end_key}, {start_key})"
         if 'lev0' in start_key or 'lev0' in end_key or 'lev2' in start_key or 'lev1' in start_key:
             results_dict = self._drp_results(tdiff_str, table)
@@ -747,7 +754,6 @@ class KoaRtiApi:
 
     def _metrics_results(self, fields, table):
         results = {}
-
         # level can be 0
         if not self.params.level:
             query, params = self._generic_query(key=fields, table=table)
@@ -759,7 +765,6 @@ class KoaRtiApi:
         return results
 
     def _drp_results(self, tdiff, table):
-
         results = {'DRP': []}
 
         query = None
@@ -769,6 +774,8 @@ class KoaRtiApi:
                     f"lev0.filesize_mb, lev1.archsize_mb, {tdiff} " \
                     f"FROM {table} lev1, {table} lev0 " \
                     f"WHERE lev0.koaid=lev1.koaid AND lev0.level=0 AND lev1.level=1"
+            # if self.params.inst:
+            #     query += f" AND instrument={self.params.inst}"
             query = self._add_koaid_daterange(query, 'lev1.koaid', " AND ")
         elif 'lev2' in tdiff:
             query = f"SELECT lev0.koaid, lev0.instrument, lev2.level, " \
@@ -777,6 +784,9 @@ class KoaRtiApi:
                     f"WHERE lev0.koaid=lev2.koaid AND lev0.level=0 AND lev2.level=2"
 
             query = self._add_koaid_daterange(query, 'lev2.koaid', " AND ")
+
+        if query and self.params.inst:
+            query += f" AND lev0.instrument='{self.params.inst}'"
 
         if query:
             results['DRP'] = self.db_functions.make_query(query, ())
@@ -802,7 +812,6 @@ class KoaRtiApi:
         """
         stats = {}
         results_dict, sums = self._get_time_diff(start_key, end_key)
-
         for level in results_dict.keys():
             results = results_dict[level]
 
