@@ -37,7 +37,10 @@ def update_lev2_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
     if koaid != None:
         # This data is processed as a whole, add a WAITING database entry and
         # wait for the final call
-        return update_lev1_parameters(parsedParams, reingest, config, conn, dbUser, 'WAITING')
+        status = 'WAITING'
+        if instrument == 'OSIRIS':
+            status = 'QUEUED'
+        return update_lev1_parameters(parsedParams, reingest, config, conn, dbUser, status)
 
     # metrics will exist for calls from IPAC
     if 'metrics' in parsedParams.keys():
