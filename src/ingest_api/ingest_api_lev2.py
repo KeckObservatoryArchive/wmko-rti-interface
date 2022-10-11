@@ -70,7 +70,8 @@ def update_lev2_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         # For DEIMOS we will get a datadir with multiple KOAIDs
         # Need to add a database entry for each
         # This may work for other instruments with slitmasks as well
-        if instrument == 'DEIMOS':
+        if instrument == 'DEIMOS' or instrument == 'MOSFIRE':
+            allowed = ['DE.', 'MF.']
             # Check datadir
             processDir = 'error'
             if 'datadir' in parsedParams.keys():
@@ -88,7 +89,7 @@ def update_lev2_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
                 found = []
                 for koaid in koaidList:
                     for k in koaid.split('_'):
-                        if k.startswith('DE.'):
+                        if k.startswith(tuple(allowed)):
                             parsedParams['koaid'] = k[:20]
                             if k[:20] not in found:
                                 lev1Params = update_lev1_parameters(parsedParams, reingest, config, conn, dbUser, 'QUEUED')
