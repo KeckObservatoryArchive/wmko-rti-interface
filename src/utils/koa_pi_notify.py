@@ -335,48 +335,45 @@ class KoaPiNotify:
         msg += f"Your {instr} data for\n\n";
         msg += f"Semester: {semester}\n";
         msg += f"Program: {progid}\n\n";
-        msg += f"are now being archived in real-time.  The proprietary period for your program,\n";
-        msg += f"as approved by your Selecting Official, is\n\n";
+        msg += f"are now being archived in real-time.\n\n";
+        msg += f"You can stream your data directly to your local storage while ";
+        msg += f"observing by using the Observers' Data Access Portal at\n";
+        msg += f"https://koa.ipac.caltech.edu/rti-gui/login\n\n";
+        msg += f"You can grant data access to others at\n";
+        msg += f"https://koa.ipac.caltech.edu/applications/KOA/grant.html\n\n";
+        msg += f"The proprietary period for your program, as approved by your Selecting Official, is\n\n";
         if pp or instr != "HIRES":
             msg += f"{pp} months\n\n";
         else:
             msg += f"CCD1 = {pp1} months\n";
             msg += f"CCD2 = {pp2} months\n";
             msg += f"CCD3 = {pp3} months\n\n";
-        msg += f"from the date of observation, after which the data will be made public via\n";
-        msg += f"KOA.  Policy details can be found at\n";
+        msg += f"from the date of observation, after which the data will be ";
+        msg += f"made public via KOA.  Policy details can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/KOA_data_policy.pdf.";
         msg += f"\n\n";
-        msg += f"If the proprietary period shown above is not what you expect, please\n";
-        msg += f"contact your current Selecting Official.  The most up-to-date list\n";
-        msg += f"of Selecting Officials can be found at\n";
+        msg += f"If the proprietary period shown above is not what you expect, ";
+        msg += f"please contact your current Selecting Official.  The most ";
+        msg += f"up-to-date list of Selecting Officials can be found at\n";
         msg += f"http://www2.keck.hawaii.edu/koa/public/soList.html\n\n";
 
-        msg += f"To access your proprietary data, visit the password-protected\n";
-        msg += f"KOA User Interface (UI) at\n\n";
+        msg += f"To access your proprietary data, visit the password-protected ";
+        msg += f"KOA User Interface (UI) at\n";
         msg += f"http://koa.ipac.caltech.edu\n\n";
 
-        msg += f"If you have forgotten your username or password, or if you would like\n";
-        msg += f"to allow your Co-Is access to this program, please submit your request\n";
-        msg += f"using the form located at\n\n";
-
+        msg += f"If you have forgotten your username or password, please ";
+        msg += f"submit a help desk ticket at\n";
         msg += f"https://koa.ipac.caltech.edu/applications/Helpdesk\n\n";
 
-        msg += f"Provide the program ID and the names and email addresses of the\n";
-        msg += f"Co-Is.\n\n";
-
-        msg += f"We encourage you to use the KOA to access your data, and we\n";
+        msg += f"We encourage you to use the KOA to access your data, and we ";
         msg += f"welcome any comments and suggestions for improving the archive\n\n";
 
         msg += f"About KOA:\n";
-        msg += f"Funded by NASA, KOA is a collaborative effort between the W. M.\n";
-        msg += f"Keck Observatory and the NASA Exoplanet Science Institute (NExScI)\n";
-        msg += f"to build, operate and maintain a data archive for Keck Observatory.\n\n";
+        msg += f"Funded by NASA, KOA is a collaborative effort between the ";
+        msg += f"W. M. Keck Observatory and the NASA Exoplanet Science ";
+        msg += f"Institute (NExScI) to build, operate and maintain a data ";
+        msg += f"archive for Keck Observatory.\n\n";
 
-        msg += f"For more information about KOA, please visit\n\n";
-        msg += f"http://www2.keck.hawaii.edu/koa/public/koa.php\n\n";
-
-        msg += f"Check back regularly for news and updates as they become available.\n\n";
         msg += f"Sincerely,\n\n";
         msg += f"The Keck Observatory Archive\n";
         msg += f"koaadmin@keck.hawaii.edu";
