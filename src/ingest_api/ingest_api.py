@@ -130,6 +130,7 @@ def parse_koaid(koaid):
 
     try:
         inst, utdate, seconds, dec, ftype = koaid.split('.')
+        dec = dec.split('_')[0] # ex. 12_unp for NIRC2 or 12_hiresSlit for guider
     except:
         err = f'KOAID: {koaid} must be five parts (.) separated, ' \
               f'ending with file type (ie .fits)'
