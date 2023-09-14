@@ -71,6 +71,10 @@ class KoaPiNotify:
         Returns True/False if PI was emailed
         """
 
+        # Skip if this is a GUIDER ingestion
+        if self.instr == 'GUIDER':
+            return True, ''
+
         # db init (assuming relative location to config)
         self.dbname = 'koa'
         self.db = db_conn.db_conn('config.live.ini')
