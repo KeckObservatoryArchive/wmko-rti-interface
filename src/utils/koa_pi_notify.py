@@ -75,6 +75,10 @@ class KoaPiNotify:
         if self.instr == 'GUIDER':
             return True, ''
 
+        # Skip if NIRC2 data cube
+        if self.instr == 'NIRC2' and '_unp' in self.koaid:
+            return True, ''
+
         # db init (assuming relative location to config)
         self.dbname = 'koa'
         self.db = db_conn.db_conn('config.live.ini')
