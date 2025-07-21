@@ -284,9 +284,8 @@ def notify_pi(parsedParams):
     instr = parsedParams['instrument']
     level = parsedParams['ingesttype']
 
-    # todo: turning on dev until we are ready to make this feature live
-    # dev = 1 if parsedParams.get('dev') == 'true' else 0
-    dev = 1
+    # Check whether or not dev is enabled
+    dev = 1 if parsedParams.get('dev') == 'true' else 0
 
     kpn = KoaPiNotify(koaid, instr, level, CONFIG, dev)
     res, msg = kpn.on_ingest()
