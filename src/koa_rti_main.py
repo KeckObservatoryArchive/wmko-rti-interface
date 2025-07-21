@@ -4,6 +4,7 @@ import calendar
 import time
 import json
 import logging
+from socket import gethostname
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -254,7 +255,6 @@ if __name__ == '__main__':
     mode = args.mode
     debug = False if mode == 'release' else True
     logdir = args.logdir if mode == 'release' else '/tmp'
-    host = '0.0.0.0'
     assert port != 0, "ERROR: Must provide port"
 
     #create logger
@@ -263,7 +263,7 @@ if __name__ == '__main__':
 
     # run flask server
     log.info(f"Starting RTI API:\nPORT = {port}\nMODE = {mode}")
-    app.run(host=host, port=port, debug=False)
+    app.run(host=gethostname(), port=port, debug=False)
     log.info("Stopping KOA RTI API.\n")
 
 
