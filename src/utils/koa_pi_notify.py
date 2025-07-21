@@ -315,9 +315,7 @@ class KoaPiNotify:
         sem, progid = semid.split('_')
         instr = instr.upper()
 
-    #todo
-        # to = pi_email
-        to = self.admin_email
+        to = pi_email
         frm = self.admin_email
         bcc = self.admin_email
         subject = f"The archiving and future release of your {instr} data";
