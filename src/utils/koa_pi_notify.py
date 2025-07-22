@@ -54,6 +54,7 @@ class KoaPiNotify:
         self.level = level
         self.dev = dev
 
+        self.api          = config['MAIN_API']
         self.proposal_api = config['PROPOSALS_API']
         self.telsched_api = config['TELSCHED_API']
         self.max_old_days = config['MAX_OLD_DAYS']
@@ -215,7 +216,7 @@ class KoaPiNotify:
 
 
     def get_pi_email(self, semid):
-        url = f'{self.proposal_api}ktn={semid}&cmd=getPIEmail'
+        url = f'{self.api}/proposals/getPIEmail?ktn={semid}'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -228,7 +229,7 @@ class KoaPiNotify:
 
     def get_propint_data(self, semid):
 
-        url = f'{self.proposal_api}ktn={semid}&cmd=getApprovedPP'
+        url = f'{self.api}/proposals/getApprovedPP?ktn={semid}'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -251,7 +252,7 @@ class KoaPiNotify:
 
         #check telschedule
         try:
-            url = f'{self.telsched_api}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.api}/schedule/getSchedule?date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
