@@ -261,14 +261,15 @@ class KoaPiNotify:
             log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
         #check ToO
-        try:
-            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
-            result = urlopen(url).read().decode('utf-8')
-            result = json.loads(result)
-            if len(result) > 0: 
-                return True
-        except Exception as e:
-            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
+# No longer need this since scheduled ToOs will be in getSchedule now
+#        try:
+#            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
+#            result = urlopen(url).read().decode('utf-8')
+#            result = json.loads(result)
+#            if len(result) > 0: 
+#                return True
+#        except Exception as e:
+#            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
         #check Twilight 
         #NOTE: We can't check keckOperations.twilightObserving b/c the entries are inserted at 7am by cron
@@ -285,14 +286,17 @@ class KoaPiNotify:
 
         #Twilight Method 2: check proposalsAPI.php?cmd=getTwilightPrograms
         try:
-            url = f'{self.proposal_api}cmd=getTwilightPrograms&semester={sem}'
+            url = f'{self.api}/proposals/getTwilightPrograms?semester={sem}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
-                if semid in result['data']:
-                    instrs = result['data'][semid]
-                    if instr in ' '.join(instrs):
-                        return True
+                 semids = [i['KTN'] for i in result['data']['Twilight']]
+                 if semid in semids:
+                     return True
+#                 if semid in result['data']:
+#                    instrs = result['data'][semid]
+#                    if instr in ' '.join(instrs):
+#                        return True
         except Exception as e:
             log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
