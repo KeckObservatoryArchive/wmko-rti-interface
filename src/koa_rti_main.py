@@ -4,6 +4,7 @@ import calendar
 import time
 import json
 import logging
+from socket import gethostname
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ from flask_cors import CORS
 
 from ingest_api.ingest_api import ingest_api_get
 from utils.koa_rti_api import KoaRtiApi
-from utils.koa_rti_helpers import get_api_help_string, InstrumentReport
+from utils.koa_rti_helpers import get_api_help_string#, InstrumentReport
 from utils.koa_rti_helpers import parse_request, parse_results, parse_args
 from utils.koa_rti_helpers import api_results, get_results, year_range
 from utils.koa_tpx_gui import tpx_gui
@@ -82,7 +83,7 @@ def tpx_rti_page():
     opt_lists = rti_api.getOptionLists()
 
     if var_get.page == 'health':
-        results = InstrumentReport(rti_api.getInst()).results()
+#        results = InstrumentReport(rti_api.getInst()).results()
         page_name = "rti_health.html"
     elif var_get.page == 'stats':
         page_name = "rti_metrics.html"
@@ -254,7 +255,6 @@ if __name__ == '__main__':
     mode = args.mode
     debug = False if mode == 'release' else True
     logdir = args.logdir if mode == 'release' else '/tmp'
-    host = '0.0.0.0'
     assert port != 0, "ERROR: Must provide port"
 
     #create logger
@@ -263,7 +263,7 @@ if __name__ == '__main__':
 
     # run flask server
     log.info(f"Starting RTI API:\nPORT = {port}\nMODE = {mode}")
-    app.run(host=host, port=port, debug=False)
+    app.run(host=gethostname(), port=port, debug=False)
     log.info("Stopping KOA RTI API.\n")
 
 

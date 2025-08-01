@@ -54,6 +54,7 @@ class KoaPiNotify:
         self.level = level
         self.dev = dev
 
+        self.api          = config['MAIN_API']
         self.proposal_api = config['PROPOSALS_API']
         self.telsched_api = config['TELSCHED_API']
         self.max_old_days = config['MAX_OLD_DAYS']
@@ -215,7 +216,7 @@ class KoaPiNotify:
 
 
     def get_pi_email(self, semid):
-        url = f'{self.proposal_api}ktn={semid}&cmd=getPIEmail'
+        url = f'{self.api}/proposals/getPIEmail?ktn={semid}'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -228,7 +229,7 @@ class KoaPiNotify:
 
     def get_propint_data(self, semid):
 
-        url = f'{self.proposal_api}ktn={semid}&cmd=getApprovedPP'
+        url = f'{self.api}/proposals/getApprovedPP?ktn={semid}'
         try:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
@@ -251,7 +252,7 @@ class KoaPiNotify:
 
         #check telschedule
         try:
-            url = f'{self.telsched_api}cmd=getSchedule&date={yester}&instr={shortinstr}&projcode={projcode}'
+            url = f'{self.api}/schedule/getSchedule?date={yester}&instr={shortinstr}&projcode={projcode}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if len(result) > 0: 
@@ -260,14 +261,15 @@ class KoaPiNotify:
             log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
         #check ToO
-        try:
-            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
-            result = urlopen(url).read().decode('utf-8')
-            result = json.loads(result)
-            if len(result) > 0: 
-                return True
-        except Exception as e:
-            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
+# No longer need this since scheduled ToOs will be in getSchedule now
+#        try:
+#            url = f'{self.telsched_api}cmd=getToORequest&date={yester}&instr={shortinstr}&projcode={projcode}'
+#            result = urlopen(url).read().decode('utf-8')
+#            result = json.loads(result)
+#            if len(result) > 0: 
+#                return True
+#        except Exception as e:
+#            log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
         #check Twilight 
         #NOTE: We can't check keckOperations.twilightObserving b/c the entries are inserted at 7am by cron
@@ -284,14 +286,17 @@ class KoaPiNotify:
 
         #Twilight Method 2: check proposalsAPI.php?cmd=getTwilightPrograms
         try:
-            url = f'{self.proposal_api}cmd=getTwilightPrograms&semester={sem}'
+            url = f'{self.api}/proposals/getTwilightPrograms?semester={sem}'
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
-                if semid in result['data']:
-                    instrs = result['data'][semid]
-                    if instr in ' '.join(instrs):
-                        return True
+                 semids = [i['KTN'] for i in result['data']['Twilight']]
+                 if semid in semids:
+                     return True
+#                 if semid in result['data']:
+#                    instrs = result['data'][semid]
+#                    if instr in ' '.join(instrs):
+#                        return True
         except Exception as e:
             log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
@@ -315,9 +320,7 @@ class KoaPiNotify:
         sem, progid = semid.split('_')
         instr = instr.upper()
 
-    #todo
-        # to = pi_email
-        to = self.admin_email
+        to = pi_email
         frm = self.admin_email
         bcc = self.admin_email
         subject = f"The archiving and future release of your {instr} data";
