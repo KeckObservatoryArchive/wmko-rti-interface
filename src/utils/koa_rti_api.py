@@ -5,7 +5,7 @@ import os
 from os import stat
 
 from utils.koa_rti_helpers import query_prefix, date_iter
-from utils.koa_rti_pykoa import PyKoaApi
+#from utils.koa_rti_pykoa import PyKoaApi
 from utils.koa_rti_db import DatabaseInteraction
 from utils.koa_rti_plots import TimeBarPlot, OverlayTimePlot
 
@@ -104,12 +104,12 @@ class KoaRtiApi:
         return False
 
     # --- pyKoa section ---
-    def pykoaALL(self):
-        # koaid, filehand, progid, semid, imagetyp
-        pykoa_api = PyKoaApi()
-        results = pykoa_api.progid_results(self.params.progid)
-
-        return results
+#    def pykoaALL(self):
+#        # koaid, filehand, progid, semid, imagetyp
+#        pykoa_api = PyKoaApi()
+#        results = pykoa_api.progid_results(self.params.progid)
+#
+#        return results
 
     # --- Begin search section ---
     def searchDATE(self):
