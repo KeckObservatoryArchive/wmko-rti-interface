@@ -1,5 +1,5 @@
 from functools import wraps
-from datetime import datetime as dt
+from datetime import timezone, datetime as dt
 
 class DateParseException(Exception):
     pass
@@ -43,7 +43,7 @@ def update_db_data(parsedParams, config, conn, dbUser, defaultMsg=''):
 
     koaid = parsedParams['koaid']
     level = parsedParams['ingesttype'].replace('lev','')
-    now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    now = dt.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     updateQuery = f"update koa_status set"
     for key in config['METRICS_PARAMS']:
         if parsedParams['metrics'][key] == '':
