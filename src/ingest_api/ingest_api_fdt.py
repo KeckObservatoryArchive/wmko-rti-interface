@@ -43,7 +43,7 @@ def ingest_api_get_fdt():
 
     dbname = 'koa'
     log.info(f'ingest_api_get_fdt: using database {dbname}')
-    conn = None #db_conn("./config.live.ini")
+    conn = db_conn("./config.live.ini")
 
     reqDict = request.get_json()
 
@@ -70,8 +70,8 @@ def ingest_api_get_fdt():
     
     # Verify that tarfile exists in the fdt_packages table
     tarfile = reqDict.get("tarfile", "")
-    if verify_tarfile_exists(tarfile, conn) == False:
-        msg = f"ingest_api_get_fdt: {tarfile} does not exist in fdt_packages"
+    status, msg = verify_tarfile_exists(tarfile, conn, dbname)
+    if status == False:
         log_and_close_db(msg, conn)
         return {"apiStatus":"ERROR", "message":msg}
 
@@ -134,17 +134,20 @@ def ingest_api_get_fdt():
 
     return jsonify(koaid_status)
 
-def verify_tarfile_exists(tarfile, conn):
+def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
+    """ Make sure that the tarfile name exists in fdt_packages """
+
+    status = ["COMPLETE", "TRANSFERRED"]
+
     query = "SELECT * FROM fdt_packages WHERE filename = %s"
-    result = conn.cursor.execute(query, (tarfile,))
-    msg = ""
+    result = conn.query(dbname, query, values=(tarfile,))
+
     if len(result) != 1:
-        msg = f"ingest_api_get_fdt: tarfile {tarfile} does not exist in fdt_packages"
-    elif result[0]["status"] not in ["COMPLETE", "TRANSFERRED"]:
-        msg = f"ingest_api_get_fdt: tarfile {tarfile} is not COMPLETE/TRANSFERRED"
-    if msg:
-        log_and_close_db(msg, conn)
-        return {"apiStatus":"ERROR", "message":msg}
+        return False, f"ingest_api_get_fdt: {tarfile} not in fdt_packages"
+    elif result[0]["status"] not in status:
+        return False, f"ingest_api_get_fdt: {tarfile} is not {status}"
+
+    return True, ""
 
 def update_fdt_observations(parsedParams, reingest, config, conn):
     """For ingesttype=lev0, verify can continue, then update the database."""
