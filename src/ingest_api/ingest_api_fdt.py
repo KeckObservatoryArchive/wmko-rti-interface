@@ -68,6 +68,13 @@ def ingest_api_get_fdt():
         log_and_close_db(msg, conn)
         return {"apiStatus":"ERROR", "message":msg}
     
+    # Verify that tarfile exists in the fdt_packages table
+    tarfile = reqDict.get("tarfile", "")
+    if verify_tarfile_exists(tarfile, conn) == False:
+        msg = f"ingest_api_get_fdt: {tarfile} does not exist in fdt_packages"
+        log_and_close_db(msg, conn)
+        return {"apiStatus":"ERROR", "message":msg}
+
     # Redefine parse_funcs
     parse_funcs = {
         "koaid": ingest_api.parse_koaid,
@@ -91,12 +98,6 @@ def ingest_api_get_fdt():
                 koaid_status[kid] = {"apiStatus":"ERROR", "message":msg}
                 log.info(msg)
                 continue
-
-        # Verify that tarfile exists in the fdt_packages table
-        tarfile = reqDict.get("tarfile", "")
-        if verify_tarfile_exists(tarfile, conn) == False:
-            log.info(f"ingest_api_get_fdt: tarfile {tarfile} does not exist in fdt_packages")
-            continue
 
         # Verify that KOAID exists in the koa_status and fdt_observations tables
 
@@ -134,7 +135,6 @@ def ingest_api_get_fdt():
     return jsonify(koaid_status)
 
 def verify_tarfile_exists(tarfile, conn):
-    return True
     query = "SELECT * FROM fdt_packages WHERE filename = %s"
     result = conn.cursor.execute(query, (tarfile,))
     msg = ""
