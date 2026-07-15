@@ -12,6 +12,7 @@ from flask import Flask, render_template, request, send_from_directory, jsonify
 from flask_cors import CORS
 
 from ingest_api.ingest_api import ingest_api_get
+from ingest_api.ingest_api_fdt import ingest_api_get_fdt
 from utils.koa_rti_api import KoaRtiApi
 from utils.koa_rti_helpers import get_api_help_string#, InstrumentReport
 from utils.koa_rti_helpers import parse_request, parse_results, parse_args
@@ -41,9 +42,12 @@ cors = CORS(app, resources = {
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 
-@app.route("/ingest_api", methods=["GET"])
+@app.route("/ingest_api", methods=["GET", "PUT"])
 def ingest_api():
-    log.info('ingest_api: starting api call')
+    if request.method == "PUT":
+        log.info('ingest_api: starting api call for FDT')
+        return ingest_api_get_fdt()
+    log.info('ingest_api: starting api call for RTI')
     return ingest_api_get()
 
 
