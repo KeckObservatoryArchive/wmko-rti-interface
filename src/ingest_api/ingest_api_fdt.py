@@ -100,6 +100,11 @@ def ingest_api_get_fdt():
                 continue
 
         # Verify that KOAID exists in the koa_status and fdt_observations tables
+        status, msg = verify_koaid_exists(kid, conn, dbname)
+        if status == False:
+            log_and_close_db(msg, conn)
+            return {"apiStatus":"ERROR", "message":msg}
+        tableIds = msg
 
         # Send the request to update koa_status for this koaid
         parsedParams = {
@@ -150,6 +155,32 @@ def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
         return False, f"ingest_api_get_fdt: {tarfile} is not {status}"
 
     return True, ""
+
+def verify_koaid_exists(koaid, conn, dbname="koa_test"):
+    """
+    Make sure that the koaid exists in both koa_status and fdt_observations
+    """
+
+    status = ["TRANSFERRED", "COMPLETE", "ERROR", "PACKAGED"]
+
+    ids = {"fdt_observations":"obsid", "koa_status":"id"}
+    tableIds = {}
+
+    koaid = koaid.replace(".fits", "")
+
+    for table in ["fdt_observations", "koa_status"]:
+        query = f"SELECT * FROM {table} WHERE koaid = %s"
+        result = conn.query(dbname, query, values=(koaid,))
+
+        if len(result) == 0:
+            return False, f"ingest_api_get_fdt: {koaid} not in {table}"
+        if len(result) > 1:
+            return False, f"ingest_api_get_fdt: multiple {koaid} in {table}"
+        elif result[0]["status"] not in status:
+            return False, f"ingest_api_get_fdt: {koaid} in {table} is not {status}"
+        tableIds[table] = result[0][ids[table]]
+
+    return True, tableIds
 
 def update_fdt_observations(parsedParams, reingest, config, conn):
     """For ingesttype=lev0, verify can continue, then update the database."""
