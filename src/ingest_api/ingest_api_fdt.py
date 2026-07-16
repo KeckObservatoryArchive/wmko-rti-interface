@@ -91,7 +91,6 @@ def ingest_api_get_fdt():
         for key in parse_funcs.keys():
             try:
                 value = data.get(key, "false")
-                print(key, value)
                 data[key] = parse_funcs[key](value)
             except ParameterException as e:
                 msg = f"ingest_api_get_fdt: invalid/{key} {kid} ({data}) - {e}"
@@ -107,22 +106,24 @@ def ingest_api_get_fdt():
         tableIds = msg
 
         # Send the request to update koa_status for this koaid
+        reingest = reqDict.get("reingest")
         parsedParams = {
             "instrument": reqDict.get("instrument"),
             "ingesttype": reqDict.get("ingesttype"),
+            "reingest": reingest,
             "koaid": data.get("koaid"),
             "status": data.get("status"),
             "metrics": data.get("metrics"),
             "ingestErrors": [],
-            "tarfile": data.get("tarfile"),
+            "tarfile": reqDict.get("tarfile"),
         }
         log.info(f"ingest_api_get_fdt: updating koa_status for {kid}")
-        reingest = reqDict.get("reingest")
         
         # Send the request to update koa_status for this koaid
         # Use the previously implemented function for koa_status updates
         parsedParams = funcs[parsedParams["ingesttype"]](parsedParams, reingest, CONFIG, conn, dbUser=dbname)
-        koaid_status[kid] = "ERROR" if parsedParams["apiStatus"] == "ERROR" \
+        koaid_status[kid] = "ERROR" \
+            if parsedParams.get("apiStatus", "") == "ERROR" \
             else "SUCCESS"
 
         # Send the request to update fdt_observations for this koaid
@@ -132,15 +133,15 @@ def ingest_api_get_fdt():
 
     # Send the request to update fdt_packages for this tarfile
     status = "ERROR" if len([i for i in koaid_status.values() if i == "ERROR"]) \
-        else "SUCCESS"
+        else "COMPLETE"
     log.info(f"ingest_api_get_fdt: updating fdt_packages for {tarfile} -- {status}")
     parsedParams["status"] = status
     update_fdt_packages(parsedParams, conn, dbname)
-
-    log_and_close_db("ingest_api_get_fdt: complete", conn)
-
     koaid_status[tarfile] = status
     
+    log.info(f"ingest_api_get_fdt: {koaid_status}")
+    log_and_close_db("ingest_api_get_fdt: complete", conn)
+
     return jsonify(koaid_status)
 
 def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
@@ -210,62 +211,3 @@ def update_fdt_packages(parsedParams, conn, dbname="koa_test"):
 
     return True
 
-
-
-
-# fdt_observations
-# +----------------------+-----------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-# | Field                | Type                                                                              | Null | Key | Default           | Extra                                         |
-# +----------------------+-----------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-# | obsid                | bigint                                                                            | NO   | PRI | NULL              | auto_increment                                |
-# | koaid                | varchar(48)                                                                       | NO   | MUL | NULL              |                                               |
-# | instrument           | varchar(255)                                                                      | NO   |     | NULL              |                                               |
-# | level                | int                                                                               | NO   |     | NULL              |                                               |
-# | filepath             | varchar(255)                                                                      | NO   |     | NULL              |                                               |
-# | filepath_replacement | varchar(255)                                                                      | YES  |     | NULL              |                                               |
-# | inserted_time        | datetime                                                                          | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
-# | pkg_id               | bigint                                                                            | YES  |     | NULL              |                                               |
-# | pkg_start_time       | datetime                                                                          | YES  |     | NULL              |                                               |
-# | pkg_end_time         | datetime                                                                          | YES  |     | NULL              |                                               |
-# | status               | enum('PENDING','PACKAGING','PACKAGED','IGNORE','TRANSFERRING','COMPLETE','ERROR') | NO   |     | NULL              |                                               |
-# | last_mod             | datetime                                                                          | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
-# +----------------------+-----------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-
-# +-------+----------------------------+------------+-------+---------------------------------------------------------------+----------------------+---------------------+--------+---------------------+---------------------+----------+---------------------+
-# | obsid | koaid                      | instrument | level | filepath                                                      | filepath_replacement | inserted_time       | pkg_id | pkg_start_time      | pkg_end_time        | status   | last_mod            |
-# +-------+----------------------------+------------+-------+---------------------------------------------------------------+----------------------+---------------------+--------+---------------------+---------------------+----------+---------------------+
-# |   219 | SI.20260603.86362.13       | SCALES     |     0 | /koadata/SCALES/20260603/lev0/SI.20260603.86362.13.fits       | NULL                 | 2026-07-13 11:32:09 |     11 | 2026-07-14 10:55:15 | 2026-07-14 10:55:16 | PACKAGED | 2026-07-14 10:55:16 |
-# |   220 | SI.20260603.86362.13_qramp | SCALES     |     0 | /koadata/SCALES/20260603/lev0/SI.20260603.86362.13_qramp.fits | NULL                 | 2026-07-13 11:32:09 |     11 | 2026-07-14 10:55:16 | 2026-07-14 10:55:16 | PACKAGED | 2026-07-14 10:55:16 |
-# |   218 | SI.20260603.86298.13_qramp | SCALES     |     0 | /koadata/SCALES/20260603/lev0/SI.20260603.86298.13_qramp.fits | NULL                 | 2026-07-13 11:32:09 |     11 | 2026-07-14 10:55:14 | 2026-07-14 10:55:15 | PACKAGED | 2026-07-14 10:55:15 |
-# +-------+----------------------------+------------+-------+---------------------------------------------------------------+----------------------+---------------------+--------+---------------------+---------------------+----------+---------------------+
-
-
-# fdt_packages
-# +----------------+------------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-# | Field          | Type                                                                               | Null | Key | Default           | Extra                                         |
-# +----------------+------------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-# | pkg_id         | bigint                                                                             | NO   | PRI | NULL              | auto_increment                                |
-# | run_number     | bigint                                                                             | NO   |     | 1                 |                                               |
-# | filename       | varchar(255)                                                                       | NO   |     | NULL              |                                               |
-# | filepath       | varchar(255)                                                                       | NO   |     | NULL              |                                               |
-# | instrument     | varchar(255)                                                                       | NO   |     | NULL              |                                               |
-# | level          | int                                                                                | NO   |     | NULL              |                                               |
-# | status         | enum('OPEN','CLOSED','TRANSFERRING','COMPLETE','ERROR','CLOSE_REQUESTED','IGNORE') | NO   |     | NULL              |                                               |
-# | xfr_pid        | bigint                                                                             | YES  |     | NULL              |                                               |
-# | creation_time  | datetime                                                                           | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
-# | closed_time    | datetime                                                                           | YES  |     | NULL              |                                               |
-# | xfr_start_time | datetime                                                                           | YES  |     | NULL              |                                               |
-# | xfr_end_time   | datetime                                                                           | YES  |     | NULL              |                                               |
-# | filesize_mb    | double                                                                             | NO   |     | 0                 |                                               |
-# | koaid_count    | int                                                                                | NO   |     | 0                 |                                               |
-# | source_deleted | tinyint(1)                                                                         | NO   |     | 0                 |                                               |
-# | last_mod       | datetime                                                                           | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
-# +----------------+------------------------------------------------------------------------------------+------+-----+-------------------+-----------------------------------------------+
-
-# +--------+------------+-------------------------------------+-------------------------------+------------+-------+--------+---------+---------------------+---------------------+----------------+--------------+-------------+-------------+----------------+---------------------+
-# | pkg_id | run_number | filename                            | filepath                      | instrument | level | status | xfr_pid | creation_time       | closed_time         | xfr_start_time | xfr_end_time | filesize_mb | koaid_count | source_deleted | last_mod            |
-# +--------+------------+-------------------------------------+-------------------------------+------------+-------+--------+---------+---------------------+---------------------+----------------+--------------+-------------+-------------+----------------+---------------------+
-# |     11 |          3 | SI.20260603.20333.76_lev0.tar       | /koadata/SCALES/tarfiles/lev0 | SCALES     |     0 | CLOSED |    NULL | 2026-07-14 10:52:15 | 2026-07-14 10:57:20 | NULL           | NULL         |    20876.66 |         220 |              0 | 2026-07-14 10:57:20 |
-# |      9 |          2 | SI.20260603.20333.76_lev0.tar       | /koadata/SCALES/tarfiles/lev0 | SCALES     |     0 | CLOSED |    NULL | 2026-07-14 10:40:00 | 2026-07-14 10:45:00 | NULL           | NULL         |    29013.53 |         391 |              1 | 2026-07-14 10:57:20 |
-# |     10 |          1 | SI.20260604.71296.39_qramp_lev0.tar | /koadata/SCALES/tarfiles/lev0 | SCALES     |     0 | CLOSED |    NULL | 2026-07-14 10:45:00 | 2026-07-14 10:50:04 | NULL           | NULL         |     5861.31 |         171 |              0 | 2026-07-14 10:50:04 |
-# +--------+------------+-------------------------------------+-------------------------------+------------+-------+--------+---------+---------------------+---------------------+----------------+--------------+-------------+-------------+----------------+---------------------+
