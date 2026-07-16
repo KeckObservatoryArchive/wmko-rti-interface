@@ -112,31 +112,34 @@ def ingest_api_get_fdt():
             "ingesttype": reqDict.get("ingesttype"),
             "koaid": data.get("kid"),
             "status": data.get("status"),
-            "metrics": data.get("metrics")
+            "metrics": data.get("metrics"),
+            "tarfile": data.get("tarfile"),
         }
         log.info(f"ingest_api_get_fdt: updating koa_status for {kid}")
         reingest = reqDict.get("reingest")
         
         # Send the request to update koa_status for this koaid
-        #parsedParams = funcs[parsedParams["ingesttype"]](parsedParams, reingest, CONFIG, conn, dbUser=dbname)
-        #koaid_status[kid] = "ERROR" if parsedParams["apiStatus"] == "ERROR" \
-        #    else "SUCCESS"
+        # Use the previously implemented function for koa_status updates
+        parsedParams = funcs[parsedParams["ingesttype"]](parsedParams, reingest, CONFIG, conn, dbUser=dbname)
+        koaid_status[kid] = "ERROR" if parsedParams["apiStatus"] == "ERROR" \
+            else "SUCCESS"
 
         # Send the request to update fdt_observations for this koaid
         log.info(f"ingest_api_get_fdt: updating fdt_observations for {kid}")
-        update_fdt_observations(parsedParams, reingest, CONFIG, conn)
+        status = update_fdt_observations(parsedParams, conn, dbname)
+        koaid_status[kid] = "ERROR" if status == False else "SUCCESS"
 
-        # Send the request to update fdt_packages for this tarfile
-        log.info(f"ingest_api_get_fdt: updating fdt_packages for {tarfile}")
-        update_fdt_packages(parsedParams, reingest, CONFIG, conn)
-
-    # Update the FDT database tables
-    # Update the status of the tar archive based on status of all KOAID entries
-    status = [i for i in koaid_status.values() if i == "ERROR"]
-    hasError = False if len(status) == 0 else True
+    # Send the request to update fdt_packages for this tarfile
+    status = "ERROR" if len([i for i in koaid_status.values() if i == "ERROR"]) \
+        else "SUCCESS"
+    log.info(f"ingest_api_get_fdt: updating fdt_packages for {tarfile} -- {status}")
+    parsedParams["status"] = status
+    update_fdt_packages(parsedParams, conn, dbname)
 
     log_and_close_db("ingest_api_get_fdt: complete", conn)
 
+    koaid_status[tarfile] = status
+    
     return jsonify(koaid_status)
 
 def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
@@ -182,35 +185,28 @@ def verify_koaid_exists(koaid, conn, dbname="koa_test"):
 
     return True, tableIds
 
-def update_fdt_observations(parsedParams, reingest, config, conn):
-    """For ingesttype=lev0, verify can continue, then update the database."""
+def update_fdt_observations(parsedParams, conn, dbname="koa_test"):
+    """ Change the status for this observation """
 
-    return True
-    #  check if unique
-    query = "SELECT * FROM fdt_observations WHERE koaid = %s"
-    result = conn.cursor.execute(query, (parsedParams["koaid"],))
-    print(result)
+    query = "UPDATE fdt_observations SET status = %s WHERE koaid = %s"
+    values = (parsedParams["status"], parsedParams["koaid"],)
+    result = conn.query(dbname, query, values=values)
 
-    if result == False or len(result) != 1:
+    if result == False:
         return False
-#    result = result[0]
-#    #  verify that status is TRANSFERRED, ERROR or COMPLETE
-#    if result['status'] not in config['VALID_DB_STATUS_VALUES']:
-#        parsedParams['apiStatus'] = 'ERROR'
-#        parsedParams['ingestErrors'].append(f"current status ({result['status']}) does not allow request")
-#        return parsedParams
-
-    #  check if reingest (type string)
-#    if str(reingest).upper() == 'FALSE' and result['ipac_response_time']:
-#        parsedParams['apiStatus'] = 'ERROR'
-#        parsedParams['ingestErrors'].append('ipac_response_time already exists')
-#        return parsedParams
-
-#    _, parsedParams = update_db_data(parsedParams, config, conn, dbUser)
 
     return True
 
-def update_fdt_packages(parsedParams, reingest, config, conn):
+def update_fdt_packages(parsedParams, conn, dbname="koa_test"):
+    """ Change the status for this package """
+
+    query = "UPDATE fdt_packages SET status = %s WHERE filename = %s"
+    values = (parsedParams["status"], parsedParams["tarfile"],)
+    result = conn.query(dbname, query, values=values)
+
+    if result == False:
+        return False
+
     return True
 
 
