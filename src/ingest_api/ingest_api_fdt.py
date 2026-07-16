@@ -137,13 +137,15 @@ def ingest_api_get_fdt():
 def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
     """ Make sure that the tarfile name exists in fdt_packages """
 
-    status = ["COMPLETE", "TRANSFERRED"]
+    status = ["CLOSED"]
 
     query = "SELECT * FROM fdt_packages WHERE filename = %s"
     result = conn.query(dbname, query, values=(tarfile,))
 
-    if len(result) != 1:
+    if len(result) == 0:
         return False, f"ingest_api_get_fdt: {tarfile} not in fdt_packages"
+    if len(result) > 1:
+        return False, f"ingest_api_get_fdt: multiple {tarfile} in fdt_packages"
     elif result[0]["status"] not in status:
         return False, f"ingest_api_get_fdt: {tarfile} is not {status}"
 
