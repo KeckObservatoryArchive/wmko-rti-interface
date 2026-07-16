@@ -110,9 +110,10 @@ def ingest_api_get_fdt():
         parsedParams = {
             "instrument": reqDict.get("instrument"),
             "ingesttype": reqDict.get("ingesttype"),
-            "koaid": data.get("kid"),
+            "koaid": data.get("koaid"),
             "status": data.get("status"),
             "metrics": data.get("metrics"),
+            "ingestErrors": [],
             "tarfile": data.get("tarfile"),
         }
         log.info(f"ingest_api_get_fdt: updating koa_status for {kid}")
