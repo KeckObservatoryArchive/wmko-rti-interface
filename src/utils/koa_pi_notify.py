@@ -296,7 +296,7 @@ class KoaPiNotify:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
-                 semids = [i['KTN'] for i in result['data']['Twilight']]
+                 semids = result['data'].keys()
                  if semid in semids:
                      return True
 #                 if semid in result['data']:
