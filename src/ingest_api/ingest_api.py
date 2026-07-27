@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from datetime import timedelta, datetime as dt
+from datetime import timedelta, timezone, datetime as dt
 import pdb
 from db_conn import db_conn
 import json
@@ -18,6 +18,7 @@ from ingest_api.ingest_api_common import *
 from ingest_api.ingest_api_lev0 import update_lev0_parameters
 from ingest_api.ingest_api_lev1 import update_lev1_parameters
 from ingest_api.ingest_api_lev2 import update_lev2_parameters
+from ingest_api.ingest_api_fdt import ingest_api_get_fdt
 
 from utils.koa_pi_notify import KoaPiNotify
 
@@ -103,7 +104,8 @@ def parse_metrics(metrics):
 
     assert_is_blank(metrics)
     try:
-        metrics = json.loads(metrics)
+        if not isinstance(metrics, dict):
+            metrics = json.loads(metrics)
     except:
         assert metrics == None, 'Cannot parse metrics value'
     # Verify contents of metrics
@@ -186,6 +188,7 @@ def validate_ingest(parsedParams, reqParams):
         parsedParams['apiStatus'] = 'ERROR'
         parsedParams['ingestErrors'].append('params is empty')
     includesReqParams = all((req in parsedParams.keys() for req in reqParams))
+    print(reqParams)
     if not includesReqParams:
         print(reqParams)
         parsedParams['apiStatus'] = 'ERROR'
@@ -217,7 +220,7 @@ def parse_params(reqDict):
             reqParams.remove('koaid')
 
     parsedParams = dict()
-    parsedParams['timestamp'] = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    parsedParams['timestamp'] = dt.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     parsedParams['ingestErrors'] = []
     for key, value in reqDict.items():
         if len(key) == '':
@@ -235,12 +238,17 @@ def parse_params(reqDict):
 def ingest_api_get():
     '''API entry point from koa_rti_main.ingest_api route.'''
 
+    # If FDT, use ingest_api_get_fdt()
+    if request.method != "GET":
+        return ingest_api_get_fdt()
+    
     funcs = {
         "lev0":update_lev0_parameters, 
         "lev1":update_lev1_parameters,
         "lev2":update_lev2_parameters
     }
     reqDict = request.args.to_dict()
+
     parsedParams = parse_params(reqDict)
     reingest = parsedParams.get('reingest', 'False')
     testonly = parsedParams.get('testonly', 'False')

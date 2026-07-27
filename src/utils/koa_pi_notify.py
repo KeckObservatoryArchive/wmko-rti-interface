@@ -257,6 +257,12 @@ class KoaPiNotify:
             result = json.loads(result)
             if len(result) > 0: 
                 return True
+            if instr == 'KPF':
+                url = f'{self.api}/schedule/getSchedule?date={yester}&instr=KPF-CC'
+                result = urlopen(url).read().decode('utf-8')
+                result = json.loads(result)
+                if len(result) > 0: 
+                    return True
         except Exception as e:
             log.error(f'ERROR: Could not get data from API call {url}\nException: {str(e)}')
 
@@ -290,7 +296,7 @@ class KoaPiNotify:
             result = urlopen(url).read().decode('utf-8')
             result = json.loads(result)
             if result and result['success'] == 1:
-                 semids = [i['KTN'] for i in result['data']['Twilight']]
+                 semids = result['data'].keys()
                  if semid in semids:
                      return True
 #                 if semid in result['data']:
