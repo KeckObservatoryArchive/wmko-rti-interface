@@ -226,7 +226,8 @@ def create_logger(name, logdir):
         logger.setLevel(logging.DEBUG)
 
         #create directory if it does not exist
-        logfile = f'{logdir}/{name}.log'
+        current = datetime.now().strftime("%Y%m%d_%H%M%S")
+        logfile = f'{logdir}/{name}_{current}.log'
         Path(os.path.dirname(logfile)).mkdir(parents=True, exist_ok=True)
 
         #file handler (full debug logging)
