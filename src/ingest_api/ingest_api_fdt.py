@@ -49,6 +49,22 @@ def ingest_api_get_fdt():
 
     log.info(f"ingest_api_get: input parameters - {reqDict}")
 
+    # Verify that tarfile exists in the fdt_packages table
+    tarfile = reqDict.get("tarfile", "")
+    status, msg = verify_tarfile_exists(tarfile, conn, dbname)
+    if status == False:
+        log_and_close_db(msg, conn)
+        return {"apiStatus":"ERROR", "message":msg}
+
+    # This is just to let us know that the tarfile was received by NExScI
+    if len(reqDict) == 2:
+        status = reqDict.get("status", "").upper()
+        parsedParams = {"tarfile":tarfile, "status":status}
+        update_fdt_packages(parsedParams, conn, dbname)
+        msg = f"{tarfile} status at NExScI = {status}"
+        log_and_close_db(f"ingest_api_get_fdt: {msg}", conn)
+        return {"apiStatus":"COMPLETE", "message":f"{msg}"}
+
     # Verify parameters
     for key in parse_funcs.keys():
         try:
@@ -68,13 +84,6 @@ def ingest_api_get_fdt():
         log_and_close_db(msg, conn)
         return {"apiStatus":"ERROR", "message":msg}
     
-    # Verify that tarfile exists in the fdt_packages table
-    tarfile = reqDict.get("tarfile", "")
-    status, msg = verify_tarfile_exists(tarfile, conn, dbname)
-    if status == False:
-        log_and_close_db(msg, conn)
-        return {"apiStatus":"ERROR", "message":msg}
-
     # Redefine parse_funcs
     parse_funcs = {
         "koaid": ingest_api.parse_koaid,
@@ -121,7 +130,13 @@ def ingest_api_get_fdt():
         
         # Send the request to update koa_status for this koaid
         # Use the previously implemented function for koa_status updates
-        parsedParams = funcs[parsedParams["ingesttype"]](parsedParams, reingest, CONFIG, conn, dbUser=dbname)
+        parsedParams = funcs[parsedParams["ingesttype"]](
+                parsedParams, 
+                reingest, 
+                CONFIG, 
+                conn, 
+                dbUser=dbname
+            )
         koaid_status[kid] = "ERROR" \
             if parsedParams.get("apiStatus", "") == "ERROR" \
             else "SUCCESS"
@@ -132,8 +147,7 @@ def ingest_api_get_fdt():
         koaid_status[kid] = "ERROR" if status == False else "SUCCESS"
 
     # Send the request to update fdt_packages for this tarfile
-    status = "ERROR" if len([i for i in koaid_status.values() if i == "ERROR"]) \
-        else "COMPLETE"
+    status = "COMPLETE"
     log.info(f"ingest_api_get_fdt: updating fdt_packages for {tarfile} -- {status}")
     parsedParams["status"] = status
     update_fdt_packages(parsedParams, conn, dbname)
@@ -147,7 +161,14 @@ def ingest_api_get_fdt():
 def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
     """ Make sure that the tarfile name exists in fdt_packages """
 
-    status = ["CLOSED"]
+    if tarfile == "":
+        return False, f"ingest_api_get_fdt: no tarfile provided in request"
+
+    status = ["TRANSFERRED"]
+
+    # If rootname provided, add .tar extension
+    if not tarfile.endswith(".tar"):
+        tarfile += ".tar"
 
     query = "SELECT * FROM fdt_packages WHERE filename = %s"
     result = conn.query(dbname, query, values=(tarfile,))
@@ -202,8 +223,13 @@ def update_fdt_observations(parsedParams, conn, dbname="koa_test"):
 def update_fdt_packages(parsedParams, conn, dbname="koa_test"):
     """ Change the status for this package """
 
+    # If rootname provided, add .tar extension
+    tarfile = parsedParams["tarfile"]
+    if not tarfile.endswith(".tar"):
+        tarfile += ".tar"
+    
     query = "UPDATE fdt_packages SET status = %s WHERE filename = %s"
-    values = (parsedParams["status"], parsedParams["tarfile"],)
+    values = (parsedParams["status"], tarfile,)
     result = conn.query(dbname, query, values=values)
 
     if result == False:
