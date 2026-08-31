@@ -164,7 +164,7 @@ def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
     if tarfile == "":
         return False, f"ingest_api_get_fdt: no tarfile provided in request"
 
-    status = ["TRANSFERRED"]
+    status = ["RECEIVED", "TRANSFERRED"]
 
     # If rootname provided, add .tar extension
     if not tarfile.endswith(".tar"):
