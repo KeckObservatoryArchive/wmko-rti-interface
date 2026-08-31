@@ -94,7 +94,6 @@ def ingest_api_get_fdt():
     # Loop through the dictionary and do the updates
     for kid, data in koaid.items():
         kid = kid.replace(".fits", "")
-        data = data[0]
         koaid_status[kid] = {"apiStatus":"COMPLETE", "message":""}
         data["koaid"] = kid
 
@@ -126,7 +125,7 @@ def ingest_api_get_fdt():
             "status": data.get("status"),
             "metrics": data.get("metrics"),
             "ingestErrors": [],
-#            "tarfile": reqDict.get("tarfile"),
+            "tarfile": reqDict.get("tarfile"),
         }
         log.info(f"ingest_api_get_fdt: updating koa_status for {kid}")
         
