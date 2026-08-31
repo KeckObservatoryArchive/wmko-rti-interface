@@ -57,7 +57,7 @@ def ingest_api_get_fdt():
         return {"apiStatus":"ERROR", "message":msg}
 
     # This is just to let us know that the tarfile was received by NExScI
-    if tarfile:
+    if tarfile and not reqDict.get("koaid"):
         status = reqDict.get("status", "").upper()
         parsedParams = {"tarfile":tarfile, "status":status}
         update_fdt_packages(parsedParams, conn, dbname)
