@@ -93,7 +93,6 @@ def ingest_api_get_fdt():
 
     # Loop through the dictionary and do the updates
     for kid, data in koaid.items():
-        kid = kid.replace(".fits", "")
         koaid_status[kid] = {"apiStatus":"COMPLETE", "message":""}
         data["koaid"] = kid
 
