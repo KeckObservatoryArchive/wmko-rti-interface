@@ -93,6 +93,8 @@ def ingest_api_get_fdt():
 
     # Loop through the dictionary and do the updates
     for kid, data in koaid.items():
+        kid = kid.replace(".fits", "")
+        data = data[0]
         koaid_status[kid] = {"apiStatus":"COMPLETE", "message":""}
         data["koaid"] = kid
 
@@ -187,7 +189,7 @@ def verify_koaid_exists(koaid, conn, dbname="koa_test"):
     Make sure that the koaid exists in both koa_status and fdt_observations
     """
 
-    status = ["TRANSFERRED", "COMPLETE", "ERROR", "PACKAGED"]
+    status = ["TRANSFERRED", "COMPLETE", "ERROR", "FDT_READY", "PACKAGED"]
 
     ids = {"fdt_observations":"obsid", "koa_status":"id"}
     tableIds = {}
