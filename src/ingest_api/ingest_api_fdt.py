@@ -213,9 +213,9 @@ def update_fdt_observations(parsedParams, conn, dbname="koa_test"):
 
     query = "UPDATE fdt_observations SET status = %s WHERE koaid = %s"
     values = (parsedParams["status"], parsedParams["koaid"],)
-    result = conn.query(dbname, query, values=values)
-
-    if result == False:
+    try:
+        result = conn.query(dbname, query, values=values)
+    except:
         return False
 
     return True
