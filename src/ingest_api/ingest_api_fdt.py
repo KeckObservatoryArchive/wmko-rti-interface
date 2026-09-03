@@ -123,6 +123,7 @@ def ingest_api_get_fdt():
             "koaid": data.get("koaid"),
             "status": data.get("status"),
             "metrics": data.get("metrics"),
+            "ingest_error": data.get("ingest_error"),
             "ingestErrors": [],
             "tarfile": reqDict.get("tarfile"),
         }
