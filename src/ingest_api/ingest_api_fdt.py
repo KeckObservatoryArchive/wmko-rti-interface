@@ -51,7 +51,8 @@ def ingest_api_get_fdt():
 
     # Verify that tarfile exists in the fdt_packages table
     tarfile = reqDict.get("tarfile", "")
-    status, msg = verify_tarfile_exists(tarfile, conn, dbname)
+    reingest = ingest_api.parse_reingest(reqDict.get("reingest", False))
+    status, msg = verify_tarfile_exists(tarfile, reingest, conn, dbname)
     if status == False:
         log_and_close_db(msg, conn)
         return {"apiStatus":"ERROR", "message":msg}
@@ -159,13 +160,16 @@ def ingest_api_get_fdt():
 
     return jsonify(koaid_status)
 
-def verify_tarfile_exists(tarfile, conn, dbname="koa_test"):
+def verify_tarfile_exists(tarfile, reingest, conn, dbname="koa_test"):
     """ Make sure that the tarfile name exists in fdt_packages """
 
     if tarfile == "":
         return False, f"ingest_api_get_fdt: no tarfile provided in request"
 
     status = ["RECEIVED", "TRANSFERRED"]
+    if reingest:
+        status.append("ERROR")
+        status.append("COMPLETE")
 
     # If rootname provided, add .tar extension
     if not tarfile.endswith(".tar"):
