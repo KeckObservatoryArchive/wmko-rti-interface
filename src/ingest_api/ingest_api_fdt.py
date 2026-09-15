@@ -46,6 +46,7 @@ def ingest_api_get_fdt():
     conn = db_conn("./config.live.ini")
 
     reqDict = request.get_json()
+    reqDict = request.args.to_dict() | reqDict
 
     log.info(f"ingest_api_get: input parameters - {reqDict}")
 
