@@ -78,7 +78,7 @@ def parse_inst(inst):
 def parse_reingest(reingest):
     '''remove whitespace and check if valid'''
 
-    reingest = remove_whitespace_and_make_uppercase(reingest)
+    reingest = remove_whitespace_and_make_uppercase(str(reingest))
     assert_is_blank(reingest)
     assert_in_set(reingest, CONFIG['VALID_BOOL'])
     return reingest 
@@ -86,7 +86,7 @@ def parse_reingest(reingest):
 def parse_testonly(testonly):
     '''remove whitespace and check if valid'''
 
-    testonly = remove_whitespace_and_make_uppercase(testonly)
+    testonly = remove_whitespace_and_make_uppercase(str(testonly))
     assert_is_blank(testonly)
     assert_in_set(testonly, CONFIG['VALID_BOOL'])
     return testonly
