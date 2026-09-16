@@ -45,9 +45,11 @@ def ingest_api_get_fdt():
     log.info(f'ingest_api_get_fdt: using database {dbname}')
     conn = db_conn("./config.live.ini")
 
+    getParams = request.args.to_dict()
+    log.info(f"ingest_api_get: input GET parameters - {getParams}")
     reqDict = request.get_json()
-    reqDict = request.args.to_dict() | reqDict
-
+    log.info(f"ingest_api_get: input JSON parameters - {reqDict}")
+    reqDict = getParams | reqDict
     log.info(f"ingest_api_get: input parameters - {reqDict}")
 
     # Verify that tarfile exists in the fdt_packages table
