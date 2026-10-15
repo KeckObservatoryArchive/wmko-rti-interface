@@ -20,13 +20,12 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         processDir = parsedParams['datadir']
 #        assert isdir(processDir), f"{processDir} does not exist"
 
-        # Verify lev0 entry exists
-        result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
-        if len(result) == 0:
-            # Except for SCALES
-            if instrument not in ['SCALES']:
+        # Verify lev0 entry exists, except for SCALES
+        if instrument not in ['SCALES']:
+            result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
+            if len(result) == 0:
                 parsedParams['apiStatus'] = 'ERROR'
-            return parsedParams
+                return parsedParams
 
         # Verify entry not in DB already or reingest=true
         result, parsedParams = query_unique_row(parsedParams, conn, dbUser, level)
