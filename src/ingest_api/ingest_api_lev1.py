@@ -1,5 +1,5 @@
 from os.path import isdir
-from datetime import datetime as dt
+from datetime import datetime as dt, timezone
 from ingest_api.ingest_api_common import *
 
 def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_test', status='QUEUED'):
@@ -23,7 +23,9 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
         # Verify lev0 entry exists
         result, parsedParams = query_unique_row(parsedParams, conn, dbUser, 0)
         if len(result) == 0:
-            parsedParams['apiStatus'] = 'ERROR'
+            # Except for SCALES
+            if instrument not in ['SCALES']:
+                parsedParams['apiStatus'] = 'ERROR'
             return parsedParams
 
         # Verify entry not in DB already or reingest=true
@@ -39,8 +41,11 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
 
         # New entry
         if len(result) == 0:
+            # Get ofname for SCALES and others
+            ofname = parsedParams['ofname']
+            ofname = f",ofname='{ofname}'" if ofname else ""
             # Add QUEUED or WAITING entry to koa_status
-            now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            now = dt.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
             query = ("insert into koa_status set "
                     f"level={level},"
                     f"instrument='{instrument}',"
@@ -48,7 +53,8 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
                     f"koaid='{koaid}',"
                     f"status='{status}',"
                     f"stage_file='{processDir}',"
-                    f"creation_time='{now}'")
+                    f"creation_time='{now}'"
+                    f"{ofname}")
             result = conn.query(dbUser, query)
             if result != 1:
                 parsedParams['apiStatus'] = 'ERROR'
@@ -70,7 +76,7 @@ def update_lev1_parameters(parsedParams, reingest, config, conn, dbUser='koa_tes
             result = conn.query(dbUser, query)
 
             # Add QUEUED or WAITING entry to koa_status
-            now = dt.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            now = dt.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
             query = (f"update koa_status set status='{status}',")
             for key in config['BLANK']:
                 query += f"{key}=null,"
