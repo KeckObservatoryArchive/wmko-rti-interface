@@ -172,6 +172,7 @@ def parse_query_param(key, value):
         "start": parse_message,
         "dev": parse_message,
         "datadir": parse_message,
+        "ofname": parse_message,
         }
     key = ''.join(key.split()).lower()
     # Get the function from switcher dictionary
